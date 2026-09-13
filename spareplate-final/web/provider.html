@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Give food</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap" style="max-width:640px">
+    <div class="top">
+      <div class="logo"><span class="mark">S</span> Give food</div>
+      <nav class="nav">
+        <a href="app.html">Nearby</a>
+        <a href="need.html">Need</a>
+        <a class="on" href="provider.html">Give</a>
+        <a href="mine.html">Mine</a>
+      </nav>
+    </div>
+    <div class="card"><div class="pad">
+      <label>Food name</label>
+      <input placeholder="Veg thali">
+      <label>Category</label>
+      <select><option>Tiffin</option><option>Meals</option><option>Fruit</option></select>
+      <label>Diet</label>
+      <select><option>Veg</option><option>Non-veg</option><option>Egg</option></select>
+      <label>Servings</label>
+      <input type="number" value="2" min="1">
+      <label>Available until</label>
+      <input type="time" value="20:30">
+      <label>Note / allergens</label>
+      <textarea rows="3" placeholder="Contains dairy. Packed at 2pm."></textarea>
+      <p class="muted">v1 is free and pickup only.</p>
+      <p id="msg" class="ok"></p>
+      <button class="btn" type="button" onclick="msg.textContent='Published. Neighbors can see it on Nearby.'">Publish listing</button>
+    </div></div>
+  </div>
+</body>
+</html>

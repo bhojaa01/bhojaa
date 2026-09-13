@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Give food</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Add extra food</h1>
+    <div class="card">
+      <label>Food name</label>
+      <input id="name" placeholder="Veg thali" />
+      <label>Category</label>
+      <select id="category">
+        <option>Tiffin</option>
+        <option>Meals</option>
+        <option>Fruit</option>
+      </select>
+      <label>Servings</label>
+      <input id="servings" type="number" value="2" min="1" />
+      <label>Note</label>
+      <textarea id="note" rows="3" placeholder="Packed at 2pm. Contains dairy."></textarea>
+      <button class="btn" id="save">Publish</button>
+      <p id="msg" class="muted"></p>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="app.html">Nearby</a>
+    <a href="need.html">Need</a>
+    <a class="on" href="provider.html">Give</a>
+    <a href="login.html">Login</a>
+  </nav>
+  <script>
+    document.getElementById("save").onclick = function () {
+      document.getElementById("msg").textContent = "Published. Neighbors can now see it.";
+    };
+  </script>
+</body>
+</html>

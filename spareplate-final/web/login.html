@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap" style="max-width:460px">
+    <div class="logo"><span class="mark">S</span> SparePlate</div>
+    <h1>Welcome</h1>
+    <p class="muted">Login with phone OTP. Dev code is 1234.</p>
+    <div class="card"><div class="pad">
+      <label>Phone</label>
+      <input id="phone" placeholder="+91 98765 43210">
+      <label>OTP</label>
+      <input id="otp" placeholder="1234">
+      <p id="msg" class="muted"></p>
+      <p class="row">
+        <button class="ghost" type="button" onclick="msg.textContent='OTP sent. Use 1234'">Send OTP</button>
+        <a class="btn" href="app.html">Continue</a>
+      </p>
+    </div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="profile">
+  <div class="wrap" style="max-width:560px">
+    <div class="top">
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+      <nav class="nav">
+        <a href="app.html">Nearby</a>
+        <a href="need.html">Need</a>
+        <a href="provider.html">Give</a>
+        <a class="on" href="profile.html">Account</a>
+      </nav>
+    </div>
+    <div class="card"><div class="pad">
+      <div id="view">
+        <div class="row">
+          <h2 id="v-name">—</h2>
+          <span class="badge" id="v-role"></span>
+        </div>
+        <p class="kv"><span>Phone</span><b id="v-phone"></b></p>
+        <p class="kv"><span>Address</span><b id="v-address"></b></p>
+        <p class="kv"><span>Location</span><b id="v-loc"></b></p>
+        <p class="row" style="margin-top:16px">
+          <button class="btn" type="button" id="edit">Edit</button>
+          <a class="ghost" href="role.html">Switch Give / Need</a>
+        </p>
+        <p style="margin-top:14px"><button class="ghost" type="button" id="out">Log out</button></p>
+      </div>
+      <div id="form" class="hide">
+        <label>Phone</label>
+        <input id="phone" type="tel" readonly>
+        <label>Name</label>
+        <input id="name" placeholder="Your name">
+        <label>Pickup / area address</label>
+        <input id="address" placeholder="12, 4th Cross, Koramangala">
+        <p class="muted" id="loc">Location not set</p>
+        <p class="row" style="margin:10px 0 14px">
+          <button class="ghost" type="button" id="gps">Use this device location</button>
+        </p>
+        <p id="msg" class="muted"></p>
+        <p class="row">
+          <button class="btn" type="button" id="save">Update</button>
+          <button class="ghost" type="button" id="cancel">Cancel</button>
+        </p>
+      </div>
+    </div></div>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>

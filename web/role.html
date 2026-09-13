@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choose</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="role">
+  <div class="wrap" style="max-width:560px">
+    <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+    <h1>What do you want to do?</h1>
+    <p class="muted">V1 is one process at a time. Pick Give or Need.</p>
+    <div class="choice" style="margin-top:18px">
+      <button class="card" type="button" id="need" style="text-align:left;width:100%">
+        <div class="pad">
+          <h3>I need food</h3>
+          <p class="muted">Find nearby leftover meals and request pickup.</p>
+        </div>
+      </button>
+      <button class="card" type="button" id="give" style="text-align:left;width:100%">
+        <div class="pad">
+          <h3>I have extra food</h3>
+          <p class="muted">Publish a listing and accept a neighbor to collect.</p>
+        </div>
+      </button>
+    </div>
+    <p id="msg" class="err"></p>
+    <p class="row" style="margin-top:18px">
+      <a class="ghost" href="profile.html">Account</a>
+      <button class="ghost" type="button" id="out">Log out</button>
+    </p>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>

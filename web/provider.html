@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Give food</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="give">
+  <div class="wrap" style="max-width:640px">
+    <div class="top">
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+      <nav class="nav">
+        <a href="app.html">Nearby</a>
+        <a href="need.html">Need</a>
+        <a class="on" href="provider.html">Give</a>
+        <a href="mine.html">Mine</a>
+      </nav>
+    </div>
+    <div class="card" id="give-form"><div class="pad">
+      <label>Food name</label>
+      <input id="name" placeholder="Veg thali">
+      <label>Category</label>
+      <select id="category"><option>Tiffin</option><option>Meals</option><option>Fruit</option></select>
+      <label>Diet</label>
+      <select id="diet"><option>Veg</option><option>Non-veg</option><option>Egg</option></select>
+      <label>Servings</label>
+      <input id="servings" type="number" value="2" min="1">
+      <label>Available until</label>
+      <div class="when-picker" id="until-picker">
+        <button type="button" class="when-btn" id="until-btn">Pick date and time</button>
+        <input type="hidden" id="until">
+        <div class="when-pop hide">
+          <div class="when-cal"></div>
+          <div class="when-times"></div>
+          <div class="when-actions"><button type="button" class="btn when-apply">Apply</button></div>
+        </div>
+      </div>
+      <label>Pickup address</label>
+      <input id="address" placeholder="12, 4th Cross, Koramangala">
+      <label>Note / allergens</label>
+      <textarea id="note" rows="3" placeholder="Contains dairy. Packed at 2pm."></textarea>
+      <p class="muted">Free pickup only. Near-expiry food is shown only within 1–2 km.</p>
+      <p id="msg" class="ok"></p>
+      <button class="btn" type="button" id="save">Publish listing</button>
+    </div></div>
+    <h2 style="margin:22px 0 10px">Neighbors who need food</h2>
+    <div id="needs"></div>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>

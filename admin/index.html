@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>Bhojaa Admin</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa Admin</div>
+      <div class="row">
+        <a class="ghost" href="http://localhost:3000">App</a>
+        <button class="ghost hide" type="button" id="refresh">Refresh</button>
+        <button class="ghost hide" type="button" id="out">Logout</button>
+      </div>
+    </div>
+    <div class="card" id="login"><div class="pad">
+      <h1>Admin login</h1>
+      <p class="muted">Dev login is admin / 1234.</p>
+      <label>Username</label>
+      <input id="username" type="text" placeholder="admin" autocomplete="username">
+      <label>Password</label>
+      <input id="password" type="password" placeholder="1234" autocomplete="current-password">
+      <p id="msg" class="err"></p>
+      <button class="btn" type="button" id="go">Enter</button>
+    </div></div>
+    <div id="dash" class="hide dash">
+      <nav class="menu" id="menu">
+        <button type="button" class="menu-item on" data-section="overview">Overview</button>
+        <button type="button" class="menu-item" data-section="users">Users</button>
+        <button type="button" class="menu-item" data-section="listings">Listings</button>
+        <button type="button" class="menu-item" data-section="need_requests">Need requests</button>
+        <button type="button" class="menu-item" data-section="orders">Orders</button>
+        <button type="button" class="menu-item" data-section="reviews">Reviews</button>
+        <button type="button" class="menu-item" data-section="reports">Reports</button>
+        <button type="button" class="menu-item" data-section="categories">Categories</button>
+        <button type="button" class="menu-item" data-section="otps">OTPs</button>
+      </nav>
+      <div class="main">
+        <section class="panel" data-panel="overview">
+          <h2>Overview</h2>
+          <div class="stats" id="stats"></div>
+        </section>
+        <section class="panel hide" data-panel="users">
+          <h2>Users</h2>
+          <div class="table-wrap"><table id="users"></table></div>
+        </section>
+        <section class="panel hide" data-panel="listings">
+          <h2>Listings</h2>
+          <div class="table-wrap"><table id="listings"></table></div>
+        </section>
+        <section class="panel hide" data-panel="need_requests">
+          <h2>Need requests</h2>
+          <div class="table-wrap"><table id="need_requests"></table></div>
+        </section>
+        <section class="panel hide" data-panel="orders">
+          <h2>Orders</h2>
+          <div class="table-wrap"><table id="orders"></table></div>
+        </section>
+        <section class="panel hide" data-panel="reviews">
+          <h2>Reviews</h2>
+          <div class="table-wrap"><table id="reviews"></table></div>
+        </section>
+        <section class="panel hide" data-panel="reports">
+          <h2>Reports</h2>
+          <div class="table-wrap"><table id="reports"></table></div>
+        </section>
+        <section class="panel hide" data-panel="categories">
+          <h2>Categories</h2>
+          <div class="table-wrap"><table id="categories"></table></div>
+        </section>
+        <section class="panel hide" data-panel="otps">
+          <h2>OTPs</h2>
+          <div class="table-wrap"><table id="otps"></table></div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script src="admin.js"></script>
+</body>
+</html>

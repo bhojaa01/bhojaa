@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Listing</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="app.html">← Nearby</a></p>
+    <h1>Veg thali</h1>
+    <div class="card">
+      <p class="muted">2 servings · veg · until 8:30 pm</p>
+      <p>Dal, rice, roti from today’s lunch. Address is shown only after the giver accepts.</p>
+      <p class="row"><button class="btn" id="req">Request this food</button></p>
+      <p id="msg" class="muted"></p>
+    </div>
+  </div>
+  <script>
+    document.getElementById("req").onclick = function () {
+      document.getElementById("msg").textContent = "Request sent. Waiting for accept.";
+    };
+  </script>
+</body>
+</html>

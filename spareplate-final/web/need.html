@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Need food</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap" style="max-width:640px">
+    <div class="top">
+      <div class="logo"><span class="mark">S</span> Need food</div>
+      <nav class="nav">
+        <a href="app.html">Nearby</a>
+        <a class="on" href="need.html">Need</a>
+        <a href="provider.html">Give</a>
+        <a href="mine.html">Mine</a>
+      </nav>
+    </div>
+    <div class="card"><div class="pad">
+      <label>What do you need?</label>
+      <input placeholder="Any tiffin or leftover meal">
+      <label>Servings</label>
+      <input type="number" value="1" min="1">
+      <label>Needed by</label>
+      <input type="time" value="21:00">
+      <p class="muted">You collect. Address stays private until they accept.</p>
+      <p id="msg" class="ok"></p>
+      <button class="btn" type="button" onclick="msg.textContent='Request posted to nearby givers.'">Post request</button>
+    </div></div>
+  </div>
+</body>
+</html>

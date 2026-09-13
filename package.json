@@ -1,0 +1,11 @@
+{
+  "name": "spareplate",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "api": "node backend/server.js",
+    "app": "node web/server.js",
+    "admin": "node admin/server.js",
+    "start": "node backend/server.js"
+  }
+}

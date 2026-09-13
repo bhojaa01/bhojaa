@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Login</h1>
+    <div class="card">
+      <label>Phone</label>
+      <input id="phone" placeholder="+91 98765 43210" />
+      <label>OTP</label>
+      <input id="otp" placeholder="1234" />
+      <p class="muted">Dev OTP is 1234</p>
+      <p class="row">
+        <button class="ghost" id="send">Send OTP</button>
+        <a class="btn" href="app.html">Continue</a>
+      </p>
+      <p id="msg" class="muted"></p>
+    </div>
+  </div>
+  <script>
+    document.getElementById("send").onclick = function () {
+      document.getElementById("msg").textContent = "OTP sent. Use 1234.";
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nearby</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="nearby">
+  <div class="wrap">
+    <div class="top">
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+      <nav class="nav">
+        <a class="on" href="app.html">Nearby</a>
+        <a href="need.html">Need</a>
+        <a href="provider.html">Give</a>
+        <a href="mine.html">Mine</a>
+      </nav>
+    </div>
+    <section class="banner">
+      <h2>Food nearby</h2>
+      <p>Free leftover meals. Address is shared only after the giver accepts.</p>
+    </section>
+    <div class="filters">
+      <div class="filter">
+        <span class="filter-label">Distance</span>
+        <div class="seg" id="km">
+          <button type="button" data-km="1">1 km</button>
+          <button type="button" data-km="2">2 km</button>
+          <button type="button" data-km="5">5 km</button>
+          <button type="button" data-km="10">10 km</button>
+        </div>
+      </div>
+      <div class="filter">
+        <span class="filter-label">Diet</span>
+        <div class="seg" id="diet">
+          <button type="button" data-diet="all">All</button>
+          <button type="button" data-diet="veg">Veg</button>
+          <button type="button" data-diet="nonveg">Non-veg</button>
+        </div>
+      </div>
+    </div>
+    <p class="filter-count" id="count"></p>
+    <div class="grid" id="grid"></div>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>

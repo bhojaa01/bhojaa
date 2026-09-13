@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Need food</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="need">
+  <div class="wrap" style="max-width:640px">
+    <div class="top">
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+      <nav class="nav">
+        <a href="app.html">Nearby</a>
+        <a class="on" href="need.html">Need</a>
+        <a href="provider.html">Give</a>
+        <a href="mine.html">Mine</a>
+      </nav>
+    </div>
+    <div class="card"><div class="pad">
+      <label>What do you need?</label>
+      <input id="what" placeholder="Any tiffin or leftover meal">
+      <label>Servings</label>
+      <input id="servings" type="number" value="1" min="1">
+      <label>Needed by</label>
+      <div class="when-picker" id="when-picker">
+        <button type="button" class="when-btn" id="when-btn">Pick date and time</button>
+        <input type="hidden" id="when">
+        <div class="when-pop hide">
+          <div class="when-cal"></div>
+          <div class="when-times"></div>
+          <div class="when-actions"><button type="button" class="btn when-apply">Apply</button></div>
+        </div>
+      </div>
+      <p class="muted">You collect. Address stays private until they accept.</p>
+      <p id="msg" class="ok"></p>
+      <button class="btn" type="button" id="post">Post request</button>
+    </div></div>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>

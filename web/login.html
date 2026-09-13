@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="login">
+  <div class="wrap" style="max-width:460px">
+    <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+    <h1>Welcome</h1>
+    <p class="muted">Enter your 10-digit mobile number. We’ll send an OTP.</p>
+    <div class="card"><div class="pad">
+      <label>Phone</label>
+      <input id="phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="9876543210">
+      <div id="otp-box" class="hide">
+        <label>OTP</label>
+        <input id="otp" inputmode="numeric" maxlength="4" placeholder="1234">
+        <p class="muted" id="resend-wrap"><button class="ghost hide" type="button" id="resend">Resend OTP</button><span id="timer"></span></p>
+      </div>
+      <p id="msg" class="muted"></p>
+      <p class="row">
+        <button class="btn" type="button" id="go">Continue</button>
+      </p>
+    </div></div>
+  </div>
+  <script src="client.js"></script>
+</body>
+</html>
