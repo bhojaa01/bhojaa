@@ -1,6 +1,9 @@
 const Collection = require("./collection");
 
+const uri = process.env.MONGO_URI;
+
 const db = {
+  uri,
   users: new Collection("users"),
   otps: new Collection("otps"),
   listings: new Collection("listings"),

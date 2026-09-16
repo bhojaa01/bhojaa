@@ -1,7 +1,9 @@
 const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 module.exports = {
-  port: 4000,
+  port: process.env.PORT || 4000,
+  mongoUri: process.env.MONGO_URI,
   appPort: 3000,
   adminPort: 3001,
   otp: "1234",
