@@ -1,5 +1,9 @@
+const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+  ? "http://localhost:4000"
+  : "https://bhojaa-production.up.railway.app";
+
 const SP = {
-  apiUrl: "http://localhost:4000",
+  apiUrl: API,
   token() { return localStorage.getItem("sp_token") || ""; },
   user() { try { return JSON.parse(localStorage.getItem("sp_user") || "null"); } catch { return null; } },
   setSession(token, user) {

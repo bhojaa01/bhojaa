@@ -1,4 +1,6 @@
-const API = "http://localhost:4000";
+const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+  ? "http://localhost:4000"
+  : "https://bhojaa-production.up.railway.app";
 const KEY = "sp_admin";
 function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
