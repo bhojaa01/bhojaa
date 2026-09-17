@@ -568,22 +568,26 @@ async function pageMine() {
       parts.push("<h2>Food you gave</h2>");
       if (!data.listings.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food given yet.</p></div></div>');
       data.listings.sort((a, b) => {
-        const ae = a.status === "expired" || a.minLeft <= 0 ? 1 : 0;
-        const be = b.status === "expired" || b.minLeft <= 0 ? 1 : 0;
-        if (ae !== be) return ae - be;
-        return (b.createdAt || 0) - (a.createdAt || 0);
+        function rank(x) {
+          if (x.status === "done" || (x.given || 0) > 0) return 1;
+          if (x.status === "expired" || x.minLeft <= 0) return 2;
+          return 0;
+        }
+        const d = rank(a) - rank(b);
+        return d || (b.createdAt || 0) - (a.createdAt || 0);
       });
       data.listings.forEach((l) => {
-        const expired = l.status === "expired" || l.minLeft <= 0;
-        const note = expired ? "Available-until time has passed." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
+        const done = l.status === "done" || (l.given || 0) > 0;
+        const expired = !done && (l.status === "expired" || l.minLeft <= 0);
+        const note = done ? "Pickup completed." : expired ? "Available-until time has passed." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
         parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
-          <div class="row"><h3>${l.name}</h3><span class="badge${expired ? " exp" : ""}">${expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
+          <div class="row"><h3>${l.name}</h3><span class="badge${expired ? " exp" : ""}">${done ? "Done" : expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
           <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
           <div class="kv"><span>Available until</span><b>${SP.when(l.until)}</b></div>
           <div class="kv"><span>Posted</span><b>${SP.when(l.createdAt)}</b></div>
           <div class="kv"><span>Servings</span><b>${l.servings}</b></div>
           <div class="kv"><span>Category</span><b>${l.category || "meal"} · ${(l.diet || "veg").toUpperCase()}</b></div>
-          <div class="kv"><span>Time left</span><b>${expired ? "Expired" : SP.left(l.minLeft)}</b></div>
+          <div class="kv"><span>Time left</span><b>${done ? "Completed" : expired ? "Expired" : SP.left(l.minLeft)}</b></div>
           <div class="kv"><span>Pickups</span><b>${l.given || 0} done · ${l.waiting || 0} waiting</b></div>
           ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-listing="${l.id}">Delete</button></p>` : ""}
         </div></div>`);

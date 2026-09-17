@@ -1,17 +1,32 @@
-const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
-  ? "http://localhost:4000"
-  : "https://bhojaa-production.up.railway.app";
+const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+const API = local ? "http://localhost:4000" : "https://bhojaa-production.up.railway.app";
+const APP = local ? "http://localhost:3000" : "/";
 const KEY = "sp_admin";
+const LABELS = {
+  users: "Users",
+  listings: "Listings",
+  need_requests: "Need requests",
+  orders: "Orders",
+  reviews: "Reviews",
+  reports: "Reports",
+  categories: "Categories",
+  otps: "OTPs"
+};
 function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 function when(t) {
   if (!t) return "";
-  return new Date(t).toLocaleString();
+  return new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 function geo(r) {
   const c = r.location && r.location.coordinates;
   return c ? "[" + c[0] + ", " + c[1] + "]" : "";
+}
+function badge(status) {
+  const s = String(status || "");
+  const klass = s === "expired" || s === "declined" ? "bad" : s === "requested" || s === "waiting" ? "warn" : "";
+  return '<span class="badge ' + klass + '">' + esc(s) + "</span>";
 }
 function token() { return localStorage.getItem(KEY) || ""; }
 async function api(path, opts = {}) {
@@ -50,12 +65,12 @@ async function load() {
     ["reports", s.reports],
     ["categories", s.categories],
     ["otps", s.otps]
-  ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(k)}</span></button>`).join("");
+  ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
   table(document.getElementById("users"), [
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Phone", cell: (r) => esc(r.phone) },
     { label: "Name", cell: (r) => esc(r.profile && r.profile.name) },
-    { label: "Role", cell: (r) => esc(r.role) },
+    { label: "Role", cell: (r) => badge(r.role) },
     { label: "Address", cell: (r) => esc(r.address) },
     { label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
   ], data.users);
@@ -73,7 +88,7 @@ async function load() {
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Name", cell: (r) => esc(r.name) },
     { label: "Provider", cell: (r) => esc(r.providerId) },
-    { label: "Status", cell: (r) => '<span class="badge">' + esc(r.status) + "</span>" },
+    { label: "Status", cell: (r) => badge(r.status) },
     { label: "Category", cell: (r) => esc(r.category) },
     { label: "Diet", cell: (r) => esc(r.diet) },
     { label: "Servings", cell: (r) => esc(r.servings) },
@@ -85,14 +100,14 @@ async function load() {
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "What", cell: (r) => esc(r.what) },
     { label: "Seeker", cell: (r) => esc(r.seekerId) },
-    { label: "Status", cell: (r) => '<span class="badge">' + esc(r.status) + "</span>" },
+    { label: "Status", cell: (r) => badge(r.status) },
     { label: "Servings", cell: (r) => esc(r.servings) },
     { label: "GeoJSON", cell: (r) => esc(geo(r)) },
     { label: "Needed by", cell: (r) => esc(when(r.neededBy)) }
   ], data.need_requests);
   table(document.getElementById("orders"), [
     { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Status", cell: (r) => '<span class="badge">' + esc(r.status) + "</span>" },
+    { label: "Status", cell: (r) => badge(r.status) },
     { label: "Seeker", cell: (r) => esc(r.seekerId) },
     { label: "Provider", cell: (r) => esc(r.providerId) },
     { label: "Listing", cell: (r) => esc(r.listingId || "") },
@@ -113,7 +128,7 @@ async function load() {
     { label: "Type", cell: (r) => esc(r.targetType) },
     { label: "Target", cell: (r) => esc(r.targetId) },
     { label: "Reason", cell: (r) => esc(r.reason) },
-    { label: "Status", cell: (r) => esc(r.status) }
+    { label: "Status", cell: (r) => badge(r.status) }
   ], data.reports);
 }
 
@@ -158,6 +173,9 @@ document.getElementById("stats").onclick = (e) => {
   const btn = e.target.closest("[data-section]");
   if (btn) showSection(btn.dataset.section);
 };
+
+const appLink = document.getElementById("app-link");
+if (appLink) appLink.href = APP;
 
 if (token()) {
   showDash(true);

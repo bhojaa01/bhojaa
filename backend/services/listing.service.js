@@ -41,7 +41,7 @@ function view(item, who, now, here) {
 
 function expireIfNeeded(item) {
   if (item && item.status === "open" && item.availableUntil <= Date.now()) {
-    item.status = "expired";
+    item.status = Order.collectedByListing(item._id) ? "done" : "expired";
   }
 }
 

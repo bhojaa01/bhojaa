@@ -37,7 +37,9 @@ function mine(who) {
   return {
     orders: Order.findForUser(who._id).map((o) => view(o, who)),
     listings: Listing.findByProvider(who._id).map((l) => {
-      if (l.status === "open" && l.availableUntil <= now) l.status = "expired";
+      if (l.status === "open" && l.availableUntil <= now) {
+        l.status = Order.collectedByListing(l._id) ? "done" : "expired";
+      }
       return l;
     }).map((l) => {
       const row = listingService.view(l, who, now);

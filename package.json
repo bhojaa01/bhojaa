@@ -9,6 +9,7 @@
     "start": "node backend/server.js"
   },
   "dependencies": {
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "mongodb": "^6.21.0"
   }
 }
