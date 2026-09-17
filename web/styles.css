@@ -50,6 +50,21 @@ input[readonly]{background:#f3eee4;color:var(--soft)}
 .choice{display:grid;gap:14px}
 .choice .card{padding:22px;cursor:pointer}
 .choice h3{margin-bottom:6px}
+.btn-forest{background:var(--forest);color:#fff}
+.role-page{max-width:440px;text-align:center;padding-top:36px}
+.role-brand{flex-direction:column;justify-content:center;gap:8px;font-size:2rem;color:var(--forest)}
+.role-brand .brand{width:64px;height:64px}
+.role-page h1{color:var(--forest);font-size:1.7rem;margin:20px 0 8px;line-height:1.2}
+.role-page .choice{margin-top:22px;text-align:left}
+.role-card{padding:20px 18px 16px;cursor:default}
+.role-card .btn{width:100%;border-radius:14px;padding:13px 16px}
+.role-body{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+.role-icon{width:56px;height:56px;flex:none}
+.role-card h3{color:var(--forest);font-size:1.28rem;margin-bottom:6px}
+.role-foot{display:flex;justify-content:center;align-items:center;margin-top:28px;color:var(--forest)}
+.role-foot a,.role-foot button{background:none;border:0;color:var(--forest);font-weight:600;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.role-foot svg{width:20px;height:20px}
+.role-foot .split{width:1px;height:22px;background:#cfc6b6}
 .nav a{display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--soft)}
 .nav .on{color:var(--forest)}
 .ok{color:var(--ok);font-weight:700}
