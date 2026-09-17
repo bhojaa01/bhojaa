@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-   <title>Bhojaa Admin</title>
+  <title>Bhojaa Admin</title>
   <link rel="stylesheet" href="admin.css">
 </head>
 <body>
@@ -10,20 +10,20 @@
     <div class="top">
       <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa Admin</div>
       <div class="row">
-        <a class="ghost" href="http://localhost:3000">App</a>
+        <a class="ghost" id="app-link" href="/">App</a>
         <button class="ghost hide" type="button" id="refresh">Refresh</button>
-        <button class="ghost hide" type="button" id="out">Logout</button>
+        <button class="ghost hide" type="button" id="out">Log out</button>
       </div>
     </div>
-    <div class="card" id="login"><div class="pad">
-      <h1>Admin login</h1>
-      <p class="muted">Dev login is admin / 1234.</p>
+    <div class="card login-card" id="login"><div class="pad">
+      <h1>Staff sign in</h1>
+      <p class="muted">Manage listings, requests, and pickups.</p>
       <label>Username</label>
-      <input id="username" type="text" placeholder="admin" autocomplete="username">
+      <input id="username" type="text" placeholder="Username" autocomplete="username">
       <label>Password</label>
-      <input id="password" type="password" placeholder="1234" autocomplete="current-password">
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
       <p id="msg" class="err"></p>
-      <button class="btn" type="button" id="go">Enter</button>
+      <button class="btn btn-block" type="button" id="go">Enter</button>
     </div></div>
     <div id="dash" class="hide dash">
       <nav class="menu" id="menu">
@@ -40,6 +40,7 @@
       <div class="main">
         <section class="panel" data-panel="overview">
           <h2>Overview</h2>
+          <p class="muted intro">Live counts. Tap a card to open that list.</p>
           <div class="stats" id="stats"></div>
         </section>
         <section class="panel hide" data-panel="users">
