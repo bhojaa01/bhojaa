@@ -15,4 +15,9 @@ function offer(req, res) {
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
-module.exports = { list, create, offer };
+function remove(req, res) {
+  try { json(res, 200, needService.remove(req.user, req.params.id)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+module.exports = { list, create, offer, remove };

@@ -17,6 +17,10 @@ function findById(id) {
   return db.need_requests.findById(id);
 }
 
+function remove(id) {
+  return db.need_requests.deleteById(id);
+}
+
 function findBySeeker(seekerId) {
   return db.need_requests.find({ seekerId });
 }
@@ -33,4 +37,4 @@ function all() {
   return db.need_requests.find();
 }
 
-module.exports = { create, findById, findBySeeker, open, geoNear, all };
+module.exports = { create, findById, remove, findBySeeker, open, geoNear, all };

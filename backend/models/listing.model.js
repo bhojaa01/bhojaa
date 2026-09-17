@@ -23,6 +23,10 @@ function findById(id) {
   return db.listings.findById(id);
 }
 
+function remove(id) {
+  return db.listings.deleteById(id);
+}
+
 function findByProvider(providerId) {
   return db.listings.find({ providerId });
 }
@@ -39,4 +43,4 @@ function all() {
   return db.listings.find();
 }
 
-module.exports = { create, findById, findByProvider, open, geoNear, all };
+module.exports = { create, findById, remove, findByProvider, open, geoNear, all };

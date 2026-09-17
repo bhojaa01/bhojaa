@@ -3,14 +3,17 @@ const geo = require("./geo.service");
 
 function view(item, who, now) {
   const here = User.coords(who);
+  const minLeft = geo.minutesLeft(item.neededBy, now);
+  const expired = item.neededBy <= now && item.status !== "matched";
   return {
     id: item._id,
     what: item.what,
     servings: item.servings,
-    status: item.status,
+    status: expired ? "expired" : item.status,
     distance: Number(geo.distanceKm(item.location, here.lng, here.lat).toFixed(2)),
-    minLeft: geo.minutesLeft(item.neededBy, now),
+    minLeft,
     until: item.neededBy,
+    createdAt: item.createdAt,
     mine: item.seekerId === who._id
   };
 }
@@ -65,4 +68,12 @@ function offer(who, id, body) {
   return { orderId: order._id, status: order.status };
 }
 
-module.exports = { view, list, create, offer };
+function remove(who, id) {
+  const item = NeedRequest.findById(id);
+  if (!item || item.seekerId !== who._id) throw Object.assign(new Error("Request not found"), { status: 404 });
+  if (item.neededBy > Date.now()) throw Object.assign(new Error("Only expired requests can be deleted"), { status: 400 });
+  NeedRequest.remove(id);
+  return { ok: true };
+}
+
+module.exports = { view, list, create, offer, remove };

@@ -29,6 +29,8 @@ function view(item, who, now, here) {
     maxKm,
     minLeft: geo.minutesLeft(item.availableUntil, now),
     until: item.availableUntil,
+    createdAt: item.createdAt,
+    address: item.address || "",
     mine: item.providerId === who._id,
     given: Order.collectedByListing(item._id),
     waiting: Order.waitingByListing(item._id),
@@ -140,4 +142,14 @@ function request(who, id) {
   return { orderId: order._id, status: order.status };
 }
 
-module.exports = { view, nearby, create, get, request };
+function remove(who, id) {
+  const item = Listing.findById(id);
+  if (!item || item.providerId !== who._id) throw Object.assign(new Error("Listing not found"), { status: 404 });
+  if (item.availableUntil > Date.now() && item.status !== "expired") {
+    throw Object.assign(new Error("Only expired listings can be deleted"), { status: 400 });
+  }
+  Listing.remove(id);
+  return { ok: true };
+}
+
+module.exports = { view, nearby, create, get, request, remove };

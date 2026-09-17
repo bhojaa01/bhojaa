@@ -23,4 +23,9 @@ function request(req, res) {
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
-module.exports = { list, create, get, request };
+function remove(req, res) {
+  try { json(res, 200, listingService.remove(req.user, req.params.id)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+module.exports = { list, create, get, request, remove };

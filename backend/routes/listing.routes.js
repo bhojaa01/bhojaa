@@ -7,5 +7,6 @@ router.get("/api/listings", requireAuth, listing.list);
 router.post("/api/listings", requireAuth, listing.create);
 router.get("/api/listings/:id", requireAuth, listing.get);
 router.post("/api/listings/:id/request", requireAuth, listing.request);
+router.post("/api/listings/:id/delete", requireAuth, listing.remove);
 
 module.exports = router;

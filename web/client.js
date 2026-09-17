@@ -55,8 +55,12 @@ const SP = {
     if (min < 60) return min + " min left";
     return Math.round(min / 60) + " hr left";
   },
+  when(t) {
+    if (!t) return "—";
+    return new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  },
   statusLabel(s) {
-    return ({ requested: "Waiting", accepted: "Accepted", collected: "Collected", declined: "Declined", open: "Open", reserved: "Reserved", done: "Done", matched: "Matched" })[s] || s;
+    return ({ requested: "Waiting", accepted: "Accepted", collected: "Collected", declined: "Declined", open: "Open", reserved: "Reserved", done: "Done", matched: "Matched", expired: "Expired" })[s] || s;
   }
 };
 
@@ -150,6 +154,8 @@ function bindWhenPicker(rootId, hiddenId, btnId) {
         draw();
       };
     });
+    const focus = times.querySelector("button.on") || times.querySelector("button:not([disabled])");
+    if (focus) times.scrollTop = Math.max(0, focus.offsetTop - 24);
   }
   apply();
   const applyBtn = root.querySelector(".when-apply");
@@ -164,8 +170,11 @@ function bindWhenPicker(rootId, hiddenId, btnId) {
     if (pop.classList.contains("hide")) {
       pop.classList.remove("hide");
       draw();
-    }
+    } else pop.classList.add("hide");
   };
+  document.addEventListener("click", (e) => {
+    if (!root.contains(e.target)) pop.classList.add("hide");
+  });
 }
 
 function requireAuth() {
@@ -474,7 +483,7 @@ async function pageNeed() {
         servings: document.getElementById("servings").value,
         untilAt: document.getElementById("when").value
       }});
-      msg.textContent = "Request posted to nearby givers.";
+      location.href = "mine.html";
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
 }
@@ -547,23 +556,62 @@ async function pageMine() {
       parts.push("<h2>Pickup requests</h2>");
       if (!incoming.length) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Wait for someone in Need mode.</p></div></div>');
       incoming.forEach((o) => {
-        parts.push(`<div class="card"><div class="pad">
+        parts.push(`<div class="card req-card"><div class="pad">
           <div class="row"><h3>${o.name}</h3><span class="badge time">Waiting</span></div>
-          <p class="meta">Someone nearby asked to collect this.</p>
-          <p class="row" style="margin-top:10px"><button class="btn" type="button" data-accept="${o.id}">Accept and share address</button></p>
+          <p class="req-note muted">Someone nearby asked to collect this. Accept to share your address.</p>
+          <div class="kv"><span>Servings</span><b>${o.servings}</b></div>
+          <div class="kv"><span>Available until</span><b>${SP.when(o.until)}</b></div>
+          <div class="kv"><span>Status</span><b>${SP.statusLabel(o.status)}</b></div>
+          <p class="row" style="margin-top:14px"><button class="btn" type="button" data-accept="${o.id}">Accept and share address</button></p>
         </div></div>`);
       });
       parts.push("<h2>Food you gave</h2>");
       if (!data.listings.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food given yet.</p></div></div>');
+      data.listings.sort((a, b) => {
+        const ae = a.status === "expired" || a.minLeft <= 0 ? 1 : 0;
+        const be = b.status === "expired" || b.minLeft <= 0 ? 1 : 0;
+        if (ae !== be) return ae - be;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
       data.listings.forEach((l) => {
-        parts.push(`<div class="card"><div class="pad">
-          <div class="row"><h3>${l.name}</h3><span class="badge">${SP.statusLabel(l.status)}</span></div>
-          <p class="meta">${l.servings} serving${l.servings === 1 ? "" : "s"} · ${l.category || "meal"} · ${SP.left(l.minLeft)}</p>
-          <p class="meta">${l.given || 0} pickup${(l.given || 0) === 1 ? "" : "s"} done</p>
+        const expired = l.status === "expired" || l.minLeft <= 0;
+        const note = expired ? "Available-until time has passed." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
+        parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
+          <div class="row"><h3>${l.name}</h3><span class="badge${expired ? " exp" : ""}">${expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
+          <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
+          <div class="kv"><span>Available until</span><b>${SP.when(l.until)}</b></div>
+          <div class="kv"><span>Posted</span><b>${SP.when(l.createdAt)}</b></div>
+          <div class="kv"><span>Servings</span><b>${l.servings}</b></div>
+          <div class="kv"><span>Category</span><b>${l.category || "meal"} · ${(l.diet || "veg").toUpperCase()}</b></div>
+          <div class="kv"><span>Time left</span><b>${expired ? "Expired" : SP.left(l.minLeft)}</b></div>
+          <div class="kv"><span>Pickups</span><b>${l.given || 0} done · ${l.waiting || 0} waiting</b></div>
+          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-listing="${l.id}">Delete</button></p>` : ""}
         </div></div>`);
       });
     } else {
+      const needs = data.needs || [];
       const got = data.orders.filter((o) => o.mineRequest);
+      parts.push("<h2>Your requests</h2>");
+      if (!needs.length) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Post one from Need.</p></div></div>');
+      needs.sort((a, b) => {
+        const ae = a.status === "expired" ? 1 : 0;
+        const be = b.status === "expired" ? 1 : 0;
+        if (ae !== be) return ae - be;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+      needs.forEach((n) => {
+        const expired = n.status === "expired" || n.minLeft <= 0;
+        const note = expired ? "Needed-by time has passed." : n.status === "matched" ? "A giver accepted this request." : "Waiting for a nearby giver to accept.";
+        parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
+          <div class="row"><h3>${n.what}</h3><span class="badge${expired ? " exp" : n.status === "matched" ? " time" : ""}">${expired ? "Expired" : SP.statusLabel(n.status)}</span></div>
+          <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
+          <div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>
+          <div class="kv"><span>Posted</span><b>${SP.when(n.createdAt)}</b></div>
+          <div class="kv"><span>Servings</span><b>${n.servings}</b></div>
+          <div class="kv"><span>Time left</span><b>${expired ? "Expired" : SP.left(n.minLeft)}</b></div>
+          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-need="${n.id}">Delete</button></p>` : ""}
+        </div></div>`);
+      });
       parts.push("<h2>Food you got</h2>");
       if (!got.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food collected yet.</p></div></div>');
       got.forEach((o) => {
@@ -580,6 +628,22 @@ async function pageMine() {
       b.onclick = async () => {
         try {
           await SP.api("/api/orders/" + b.dataset.accept + "/accept", { body: {} });
+          location.reload();
+        } catch (e) { alert(e.message); }
+      };
+    });
+    root.querySelectorAll("[data-del-need]").forEach((b) => {
+      b.onclick = async () => {
+        try {
+          await SP.api("/api/needs/" + b.dataset.delNeed + "/delete", { body: {} });
+          location.reload();
+        } catch (e) { alert(e.message); }
+      };
+    });
+    root.querySelectorAll("[data-del-listing]").forEach((b) => {
+      b.onclick = async () => {
+        try {
+          await SP.api("/api/listings/" + b.dataset.delListing + "/delete", { body: {} });
           location.reload();
         } catch (e) { alert(e.message); }
       };

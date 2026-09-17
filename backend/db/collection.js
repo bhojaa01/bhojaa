@@ -39,6 +39,13 @@ Collection.prototype.updateById = function (id, patch) {
   return row;
 };
 
+Collection.prototype.deleteById = function (id) {
+  const i = this.docs.findIndex((d) => d._id === String(id));
+  if (i < 0) return false;
+  this.docs.splice(i, 1);
+  return true;
+};
+
 Collection.prototype.geoNear = function (lng, lat, maxKm) {
   return this.docs
     .map((d) => ({ doc: d, distance: Number(distanceKm(d.location, lng, lat).toFixed(2)) }))
