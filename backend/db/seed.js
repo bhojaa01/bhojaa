@@ -18,6 +18,9 @@ module.exports = function seed() {
     address: "12, 4th Cross, Koramangala",
     lat: 12.936,
     lng: 77.6252,
+    city: "Bengaluru",
+    state: "Karnataka",
+    country: "India",
     role: "giver"
   });
   const ravi = User.create({
@@ -26,6 +29,9 @@ module.exports = function seed() {
     address: "88, 7th Main, Koramangala",
     lat: 12.941,
     lng: 77.63,
+    city: "Bengaluru",
+    state: "Karnataka",
+    country: "India",
     role: "seeker"
   });
   Listing.create({

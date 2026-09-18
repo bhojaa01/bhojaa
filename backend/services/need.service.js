@@ -45,13 +45,13 @@ function list(who, km, here) {
   };
 }
 
-function create(who, body) {
+async function create(who, body) {
   if (who.role !== "seeker") throw Object.assign(new Error("Switch to Need mode first"), { status: 403 });
   const what = String(body.what || "").trim();
   if (!what) throw Object.assign(new Error("Say what you need"), { status: 400 });
   const lat = Number(body.lat);
   const lng = Number(body.lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) User.setLocation(who, lng, lat);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) await User.setLocation(who, lng, lat);
   const here = User.coords(who);
   const item = NeedRequest.create({
     seekerId: who._id,

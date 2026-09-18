@@ -74,7 +74,7 @@ function nearby(who, km, here) {
   };
 }
 
-function create(who, body) {
+async function create(who, body) {
   if (who.role !== "giver") throw Object.assign(new Error("Switch to Give mode first"), { status: 403 });
   const name = String(body.name || "").trim();
   if (!name) throw Object.assign(new Error("Food name required"), { status: 400 });
@@ -83,7 +83,7 @@ function create(who, body) {
   who.address = address;
   const lat = Number(body.lat);
   const lng = Number(body.lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) User.setLocation(who, lng, lat);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) await User.setLocation(who, lng, lat);
   const slug = String(body.category || "meals").toLowerCase();
   const cat = Category.findBySlug(slug);
   const here = User.coords(who);

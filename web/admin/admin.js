@@ -72,6 +72,9 @@ async function load() {
     { label: "Name", cell: (r) => esc(r.profile && r.profile.name) },
     { label: "Role", cell: (r) => badge(r.role) },
     { label: "Address", cell: (r) => esc(r.address) },
+    { label: "City / town", cell: (r) => esc(r.city) },
+    { label: "State", cell: (r) => esc(r.state) },
+    { label: "Country", cell: (r) => esc(r.country) },
     { label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
   ], data.users);
   table(document.getElementById("otps"), [

@@ -18,7 +18,7 @@ function sendOtp(rawPhone) {
   return { ok: true, registered: isNew, resendIn: 30, message: isNew ? "Number registered. OTP sent. Use 1234" : "OTP sent. Use 1234" };
 }
 
-function login(rawPhone, otp, extra) {
+async function login(rawPhone, otp, extra) {
   const phone = phoneOf(rawPhone);
   if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
   const row = Otp.take(phone);
@@ -30,25 +30,29 @@ function login(rawPhone, otp, extra) {
   const lat = Number(extra.lat);
   const lng = Number(extra.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    User.setLocation(user, lng, lat);
+    await User.setLocation(user, lng, lat);
   }
   const token = Token.createUser(user._id);
-  return { token, user: profile(user) };
+  return { token, user: await profile(user) };
 }
 
-function profile(user) {
+async function profile(user) {
   const p = User.coords(user);
+  if (Number.isFinite(p.lat) && Number.isFinite(p.lng)) await User.setLocation(user, p.lng, p.lat);
   return {
     phone: user.phone,
     name: user.profile.name,
     address: user.address,
+    city: user.city || "",
+    state: user.state || "",
+    country: user.country || "",
     role: user.role,
     lat: p.lat,
     lng: p.lng
   };
 }
 
-function updateProfile(user, body) {
+async function updateProfile(user, body) {
   if (body.phone != null && body.phone !== "") {
     const phone = phoneOf(body.phone);
     if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
@@ -66,9 +70,9 @@ function updateProfile(user, body) {
   const lat = Number(body.lat);
   const lng = Number(body.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    User.setLocation(user, lng, lat);
+    await User.setLocation(user, lng, lat);
   }
-  return profile(user);
+  return await profile(user);
 }
 
 function logout(token) {

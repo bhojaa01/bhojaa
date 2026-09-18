@@ -8,8 +8,8 @@ function list(req, res) {
   json(res, 200, needService.list(req.user, req.query.km, here));
 }
 
-function create(req, res) {
-  try { json(res, 201, needService.create(req.user, req.body)); }
+async function create(req, res) {
+  try { json(res, 201, await needService.create(req.user, req.body)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 

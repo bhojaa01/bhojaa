@@ -17,6 +17,8 @@ img{max-width:100%;display:block}
 .ghost{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:10px 16px;font-weight:600}
 .hero{display:grid;gap:22px}
 .hero h1{font-size:clamp(2rem,6vw,3.6rem);line-height:1.05;max-width:13ch}
+.hero .card{background:#efe6d6}
+.hero img{width:100%;height:auto;aspect-ratio:800/533;object-fit:cover}
 .muted{color:var(--soft)}
 .banner{background:linear-gradient(135deg,#1e3a2e,#3b6553);color:#fff;border-radius:22px;padding:20px;margin:8px 0 16px}
 .banner p{opacity:.88;margin-top:4px}

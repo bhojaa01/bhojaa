@@ -6,17 +6,17 @@ function sendOtp(req, res) {
   catch (e) { json(res, e.status || 500, { error: e.message, resendIn: e.resendIn }); }
 }
 
-function login(req, res) {
-  try { json(res, 200, authService.login(req.body.phone, req.body.otp, req.body)); }
+async function login(req, res) {
+  try { json(res, 200, await authService.login(req.body.phone, req.body.otp, req.body)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
-function me(req, res) {
-  json(res, 200, authService.profile(req.user));
+async function me(req, res) {
+  json(res, 200, await authService.profile(req.user));
 }
 
-function updateMe(req, res) {
-  try { json(res, 200, authService.updateProfile(req.user, req.body)); }
+async function updateMe(req, res) {
+  try { json(res, 200, await authService.updateProfile(req.user, req.body)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 

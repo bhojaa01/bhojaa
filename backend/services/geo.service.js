@@ -1,5 +1,68 @@
 const { km, latLng, point, distanceKm } = require("../db/geo");
 
+const placeCache = new Map();
+
+function uniq(parts) {
+  const seen = new Set();
+  const out = [];
+  for (const p of parts) {
+    const s = String(p || "").trim();
+    if (!s) continue;
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+  }
+  return out;
+}
+
+function placeFrom(addr) {
+  if (!addr) return { city: "", state: "", country: "", area: "", address: "" };
+  const city = addr.city || addr.town || addr.village || addr.municipality || "";
+  const state = addr.state || "";
+  const country = addr.country || "";
+  const area = uniq([
+    addr.amenity,
+    addr.building,
+    addr.road,
+    addr.neighbourhood,
+    addr.quarter,
+    addr.suburb,
+    addr.residential,
+    addr.hamlet
+  ]).filter((p) => p !== city && p !== state && p !== country).join(", ");
+  return { city, state, country, area, address: area };
+}
+
+async function reverse(lat, lng) {
+  const key = "18:" + Number(lat).toFixed(4) + "," + Number(lng).toFixed(4);
+  if (placeCache.has(key)) return placeCache.get(key);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat="
+      + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lng);
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Bhojaa/1.0 (https://github.com/bhojaa01/bhojaa)", Accept: "application/json" },
+      signal: ctrl.signal
+    });
+    if (!res.ok) {
+      placeCache.set(key, null);
+      setTimeout(() => { if (placeCache.get(key) == null) placeCache.delete(key); }, 60000);
+      return null;
+    }
+    const place = placeFrom((await res.json()).address);
+    placeCache.set(key, place);
+    return place;
+  } catch {
+    placeCache.set(key, null);
+    setTimeout(() => { if (placeCache.get(key) == null) placeCache.delete(key); }, 60000);
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function cap(item, now) {
   const m = (item.availableUntil - now) / 60000;
   if (m <= 0) return 0;
@@ -40,4 +103,4 @@ function minutesLeft(until, now) {
   return Math.max(0, Math.round((until - now) / 60000));
 }
 
-module.exports = { km, latLng, point, distanceKm, cap, untilFrom, minutesLeft };
+module.exports = { km, latLng, point, distanceKm, cap, untilFrom, minutesLeft, reverse };

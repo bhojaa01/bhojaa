@@ -797,11 +797,14 @@ async function pageProfile() {
     }
     return "Not set";
   }
+  function placeLine(u) {
+    return [u && u.city, u && u.state, u && u.country].filter(Boolean).join(", ");
+  }
   function fillForm(u) {
     phone.value = u.phone || "";
     name.value = u.name || "";
     address.value = u.address || "";
-    loc.textContent = "Location: " + locText(u);
+    loc.textContent = "Location: " + (placeLine(u) ? placeLine(u) + " · " : "") + locText(u);
   }
   function showView(u) {
     me = u;
@@ -809,6 +812,9 @@ async function pageProfile() {
     document.getElementById("v-role").textContent = u.role === "giver" ? "Give" : u.role === "seeker" ? "Need" : "Pick mode";
     document.getElementById("v-phone").textContent = u.phone || "—";
     document.getElementById("v-address").textContent = u.address || "—";
+    document.getElementById("v-city").textContent = u.city || "—";
+    document.getElementById("v-state").textContent = u.state || "—";
+    document.getElementById("v-country").textContent = u.country || "—";
     document.getElementById("v-loc").textContent = locText(u);
     form.classList.add("hide");
     view.classList.remove("hide");
@@ -822,7 +828,9 @@ async function pageProfile() {
     form.classList.remove("hide");
   }
   try {
-    me = await SP.api("/api/me");
+    const pos = await SP.locate();
+    const pinNow = pos || (Number.isFinite(Number(me.lat)) && Number.isFinite(Number(me.lng)) ? { lat: Number(me.lat), lng: Number(me.lng) } : null);
+    me = pinNow ? await SP.api("/api/me", { body: pinNow }) : await SP.api("/api/me");
     SP.setSession(SP.token(), me);
     showView(me);
   } catch (e) {
