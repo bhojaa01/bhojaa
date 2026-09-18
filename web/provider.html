@@ -16,6 +16,16 @@
         <a href="mine.html">Mine</a>
       </nav>
     </div>
+    <section class="banner">
+      <h2>Neighbors who need food</h2>
+      <p>Accept a nearby request, or post other extra food.</p>
+    </section>
+    <p class="row" style="margin:0 0 16px">
+      <button class="btn" type="button" id="open-give">Give other food</button>
+    </p>
+    <div id="needs" class="stack"></div>
+    <div id="give-box" class="hide">
+    <h2 style="margin:8px 0 10px">Give other food</h2>
     <div class="card form-card" id="give-form"><div class="pad">
       <label>Food name</label>
       <input id="name" placeholder="Veg thali">
@@ -41,10 +51,12 @@
       <textarea id="note" rows="3" placeholder="Contains dairy. Packed at 2pm."></textarea>
       <p class="muted">Free pickup only. Near-expiry food is shown only within 1–2 km.</p>
       <p id="msg" class="ok"></p>
-      <button class="btn" type="button" id="save">Publish listing</button>
+      <p class="row" style="margin-top:8px">
+        <button class="btn" type="button" id="save">Publish listing</button>
+        <button class="ghost" type="button" id="close-give">Cancel</button>
+      </p>
     </div></div>
-    <h2 style="margin:22px 0 10px">Neighbors who need food</h2>
-    <div id="needs"></div>
+    </div>
   </div>
   <script src="client.js"></script>
 </body>

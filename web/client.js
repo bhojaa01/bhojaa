@@ -471,6 +471,62 @@ async function pageListing() {
   }
 }
 
+function nearbyNeedCard(n) {
+  return `<div class="card req-card"><div class="pad">
+    <div class="row"><h3>${n.what}</h3><span class="badge">${n.servings} serving${n.servings === 1 ? "" : "s"}</span></div>
+    <p class="req-note muted">A neighbor nearby needs this. Accept to share your pickup address.</p>
+    <div class="kv"><span>Distance</span><b>${n.distance} km</b></div>
+    <div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>
+    <div class="kv"><span>Time left</span><b>${SP.left(n.minLeft)}</b></div>
+    <p class="row" style="margin-top:14px">
+      <button class="btn" type="button" data-offer="${n.id}">Accept</button>
+    </p>
+  </div></div>`;
+}
+
+function openGiveForm(need) {
+  const box = document.getElementById("give-box");
+  if (!box) {
+    location.href = "provider.html" + (need && need.id ? "?need=" + need.id : "");
+    return;
+  }
+  if (need) {
+    const name = document.getElementById("name");
+    const servings = document.getElementById("servings");
+    if (name) name.value = need.what || "";
+    if (servings) servings.value = need.servings || 1;
+  }
+  box.classList.remove("hide");
+  const openBtn = document.getElementById("open-give");
+  if (openBtn) openBtn.classList.add("hide");
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function bindNeedOffers(root, msg, needs) {
+  root.querySelectorAll("[data-offer]").forEach((b) => {
+    b.onclick = async () => {
+      try {
+        const address = (document.getElementById("address") || {}).value || (SP.user() || {}).address || "";
+        if (!address) {
+          location.href = "provider.html?need=" + b.dataset.offer;
+          return;
+        }
+        const r = await SP.api("/api/needs/" + b.dataset.offer + "/offer", { body: { address } });
+        location.href = "order.html?id=" + r.orderId;
+      } catch (e) {
+        if (msg) { msg.className = "err"; msg.textContent = e.message; }
+        else alert(e.message);
+      }
+    };
+  });
+  root.querySelectorAll("[data-give]").forEach((b) => {
+    b.onclick = () => {
+      const need = (needs || []).find((n) => n.id === b.dataset.give);
+      openGiveForm(need || { id: b.dataset.give });
+    };
+  });
+}
+
 async function pageNeed() {
   if (!requireMode("seeker")) return;
   bindWhenPicker("when-picker", "when", "when-btn");
@@ -478,10 +534,12 @@ async function pageNeed() {
   document.getElementById("post").onclick = async () => {
     msg.className = "ok";
     try {
+      const pos = (await SP.locate()) || {};
       await SP.api("/api/needs", { body: {
         what: document.getElementById("what").value,
         servings: document.getElementById("servings").value,
-        untilAt: document.getElementById("when").value
+        untilAt: document.getElementById("when").value,
+        ...pos
       }});
       location.href = "mine.html";
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
@@ -502,6 +560,14 @@ async function pageGive() {
   const me = SP.user() || {};
   if (me.address) document.getElementById("address").value = me.address;
   bindWhenPicker("until-picker", "until", "until-btn");
+  const giveBox = document.getElementById("give-box");
+  const openGive = document.getElementById("open-give");
+  const closeGive = document.getElementById("close-give");
+  if (openGive) openGive.onclick = () => openGiveForm();
+  if (closeGive) closeGive.onclick = () => {
+    if (giveBox) giveBox.classList.add("hide");
+    if (openGive) openGive.classList.remove("hide");
+  };
   document.getElementById("save").onclick = async () => {
     msg.className = "ok";
     try {
@@ -519,26 +585,22 @@ async function pageGive() {
       location.href = "mine.html";
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
+  const needId = SP.qs("need");
   try {
-    const data = await SP.api("/api/needs");
-    const open = data.needs.filter((n) => !n.mine && n.status === "open");
+    const q = pos ? "?lat=" + pos.lat + "&lng=" + pos.lng + "&km=10" : "?km=10";
+    const data = await SP.api("/api/needs" + q);
+    const open = (data.needs || []).filter((n) => !n.mine && n.status === "open");
     if (!open.length) {
-      needsBox.innerHTML = '<p class="muted">No nearby need posts right now.</p>';
+      const n = data.nearest;
+      const extra = n && !n.mine ? ` Nearest is ${n.what} at ${n.distance} km.` : "";
+      needsBox.innerHTML = `<div class="card"><div class="pad"><p class="muted">No need posts right now.${extra}</p></div></div>`;
     } else {
-      needsBox.innerHTML = open.map((n) => `
-        <div class="card"><div class="pad">
-          <div class="row"><h3>${n.what}</h3><span class="badge">${n.servings} servings</span></div>
-          <p class="meta">${n.distance} km · ${SP.left(n.minLeft)}</p>
-          <p class="row" style="margin-top:10px"><button class="btn" type="button" data-offer="${n.id}">I can give this</button></p>
-        </div></div>`).join("");
-      needsBox.querySelectorAll("[data-offer]").forEach((b) => {
-        b.onclick = async () => {
-          try {
-            const r = await SP.api("/api/needs/" + b.dataset.offer + "/offer", { body: { address: document.getElementById("address").value } });
-            location.href = "order.html?id=" + r.orderId;
-          } catch (e) { msg.className = "err"; msg.textContent = e.message; }
-        };
-      });
+      needsBox.innerHTML = open.map(nearbyNeedCard).join("");
+      bindNeedOffers(needsBox, msg, open);
+    }
+    if (needId) {
+      const hit = open.find((n) => n.id === needId) || { id: needId };
+      openGiveForm(hit);
     }
   } catch (e) {
     needsBox.innerHTML = `<p class="err">${e.message}</p>`;
@@ -549,10 +611,25 @@ async function pageMine() {
   if (!requireMode()) return;
   const root = document.getElementById("root");
   try {
-    const data = await SP.api("/api/mine");
+    const pos = await SP.locate();
+    if (pos) {
+      try {
+        const me = await SP.api("/api/me", { body: pos });
+        SP.setSession(SP.token(), me);
+      } catch {}
+    }
+    const q = pos ? "?lat=" + pos.lat + "&lng=" + pos.lng + "&km=10" : "?km=10";
+    const [data, needData] = await Promise.all([
+      SP.api("/api/mine"),
+      role() === "giver" ? SP.api("/api/needs" + q).catch(() => ({ needs: [] })) : Promise.resolve({ needs: [] })
+    ]);
     const incoming = data.listings.flatMap((l) => l.requests.filter((r) => r.status === "requested"));
     const parts = [];
     if (role() === "giver") {
+      const nearbyNeeds = (needData.needs || []).filter((n) => !n.mine && n.status === "open");
+      parts.push("<h2>Neighbors who need food</h2>");
+      if (!nearbyNeeds.length) parts.push('<div class="card"><div class="pad"><p class="muted">No nearby need posts. Publish extra food from Give.</p></div></div>');
+      nearbyNeeds.forEach((n) => parts.push(nearbyNeedCard(n)));
       parts.push("<h2>Pickup requests</h2>");
       if (!incoming.length) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Wait for someone in Need mode.</p></div></div>');
       incoming.forEach((o) => {
@@ -628,6 +705,7 @@ async function pageMine() {
       });
     }
     root.innerHTML = parts.join("");
+    bindNeedOffers(root);
     root.querySelectorAll("[data-accept]").forEach((b) => {
       b.onclick = async () => {
         try {

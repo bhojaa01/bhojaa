@@ -1,8 +1,8 @@
 const { NeedRequest, Order, User } = require("../models");
 const geo = require("./geo.service");
 
-function view(item, who, now) {
-  const here = User.coords(who);
+function view(item, who, now, here) {
+  here = here || User.coords(who);
   const minLeft = geo.minutesLeft(item.neededBy, now);
   const expired = item.neededBy <= now && item.status !== "matched";
   return {
@@ -18,25 +18,40 @@ function view(item, who, now) {
   };
 }
 
-function list(who) {
+function radiusKm(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 10;
+  return Math.min(10, n);
+}
+
+function list(who, km, here) {
+  const radius = radiusKm(km);
   const now = Date.now();
-  const here = User.coords(who);
-  const rows = NeedRequest.geoNear(here.lng, here.lat, 2)
-    .map((x) => x.doc)
-    .filter((n) => n.status === "open" && n.neededBy > now)
-    .map((n) => view(n, who, now));
-  const mine = NeedRequest.findBySeeker(who._id)
-    .filter((n) => n.status === "open" && n.neededBy > now)
-    .map((n) => view(n, who, now));
-  const seen = new Set(rows.map((r) => r.id));
-  mine.forEach((m) => { if (!seen.has(m.id)) rows.push(m); });
-  return { needs: rows };
+  const at = here || User.coords(who);
+  const all = NeedRequest.open(now)
+    .map((n) => view(n, who, now, at))
+    .sort((a, b) => a.distance - b.distance);
+  const others = all.filter((n) => !n.mine);
+  const nearby = others.filter((n) => n.distance <= radius);
+  if (!nearby.length && others[0]) nearby.push(others[0]);
+  const mine = all.filter((n) => n.mine);
+  const seen = new Set(nearby.map((n) => n.id));
+  mine.forEach((m) => { if (!seen.has(m.id)) nearby.push(m); });
+  const nearest = others[0] || null;
+  return {
+    needs: nearby,
+    km: radius,
+    nearest: nearest ? { id: nearest.id, what: nearest.what, distance: nearest.distance, mine: nearest.mine } : null
+  };
 }
 
 function create(who, body) {
   if (who.role !== "seeker") throw Object.assign(new Error("Switch to Need mode first"), { status: 403 });
   const what = String(body.what || "").trim();
   if (!what) throw Object.assign(new Error("Say what you need"), { status: 400 });
+  const lat = Number(body.lat);
+  const lng = Number(body.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) User.setLocation(who, lng, lat);
   const here = User.coords(who);
   const item = NeedRequest.create({
     seekerId: who._id,

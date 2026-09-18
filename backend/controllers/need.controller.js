@@ -2,7 +2,10 @@ const needService = require("../services/need.service");
 const { json } = require("../utils/http");
 
 function list(req, res) {
-  json(res, 200, needService.list(req.user));
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const here = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  json(res, 200, needService.list(req.user, req.query.km, here));
 }
 
 function create(req, res) {
