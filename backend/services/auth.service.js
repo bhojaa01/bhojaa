@@ -61,6 +61,9 @@ async function updateProfile(user, body) {
     user.phone = phone;
   }
   if (body.address != null) user.address = String(body.address).trim();
+  if (body.city != null) user.city = String(body.city).trim();
+  if (body.state != null) user.state = String(body.state).trim();
+  if (body.country != null) user.country = String(body.country).trim();
   if (body.name != null) {
     const name = String(body.name).trim();
     if (!name) throw Object.assign(new Error("Name required"), { status: 400 });

@@ -8,39 +8,74 @@ const SP = {
   user() { try { return JSON.parse(localStorage.getItem("sp_user") || "null"); } catch { return null; } },
   setSession(token, user) {
     localStorage.setItem("sp_token", token);
-    localStorage.setItem("sp_user", JSON.stringify(user));
+    let place = null;
+    try { place = JSON.parse(localStorage.getItem("sp_place") || "null"); } catch {}
+    localStorage.setItem("sp_user", JSON.stringify(this.mergePlace(user, place)));
   },
   clearSession() {
     localStorage.removeItem("sp_token");
     localStorage.removeItem("sp_user");
+    localStorage.removeItem("sp_place");
     try { sessionStorage.clear(); } catch {}
+  },
+  pin(lat, lng) {
+    return {
+      lat: Math.round(Number(lat) * 10000) / 10000,
+      lng: Math.round(Number(lng) * 10000) / 10000
+    };
+  },
+  thinAddr(s) {
+    const t = String(s || "").trim().toLowerCase();
+    return !t || t === "koramangala, bengaluru";
+  },
+  mergePlace(user, pos) {
+    if (!user) user = {};
+    if (!pos) return user;
+    const u = { ...user };
+    if (Number.isFinite(Number(pos.lat))) u.lat = pos.lat;
+    if (Number.isFinite(Number(pos.lng))) u.lng = pos.lng;
+    if (pos.city) u.city = pos.city;
+    if (pos.state) u.state = pos.state;
+    if (pos.country) u.country = pos.country;
+    if (pos.address && this.thinAddr(u.address)) u.address = pos.address;
+    return u;
+  },
+  async placeOf(lat, lng) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    try {
+      const r = await fetch(
+        "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="
+          + lat + "&longitude=" + lng + "&localityLanguage=en",
+        { signal: ctrl.signal }
+      );
+      const d = await r.json();
+      const city = d.city || d.locality || "";
+      const state = d.principalSubdivision || "";
+      const country = d.countryName || "";
+      const adm = ((d.localityInfo || {}).administrative || [])
+        .slice()
+        .sort((a, b) => (b.adminLevel || 0) - (a.adminLevel || 0));
+      const area = (adm.map((a) => a && a.name).find((n) => n && n !== city && n !== state && n !== country)) || "";
+      return { city, state, country, address: area || city };
+    } catch {
+      return {};
+    } finally {
+      clearTimeout(t);
+    }
   },
   locate() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) return resolve(null);
       navigator.geolocation.getCurrentPosition(
         async (p) => {
-          const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-          try {
-            const r = await fetch(
-              "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="
-                + pos.lat + "&longitude=" + pos.lng + "&localityLanguage=en"
-            );
-            const d = await r.json();
-            const city = d.city || d.locality || "";
-            const state = d.principalSubdivision || "";
-            const country = d.countryName || "";
-            const adm = ((d.localityInfo || {}).administrative || [])
-              .slice()
-              .sort((a, b) => (b.adminLevel || 0) - (a.adminLevel || 0));
-            const area = (adm.map((a) => a && a.name).find((n) => n && n !== city && n !== state && n !== country)) || "";
-            resolve({ ...pos, city, state, country, address: area || city });
-          } catch {
-            resolve(pos);
-          }
+          const pos = this.pin(p.coords.latitude, p.coords.longitude);
+          const out = { ...pos, ...(await this.placeOf(pos.lat, pos.lng)) };
+          try { localStorage.setItem("sp_place", JSON.stringify(out)); } catch {}
+          resolve(out);
         },
         () => resolve(null),
-        { timeout: 8000, maximumAge: 300000, enableHighAccuracy: false }
+        { timeout: 8000, maximumAge: 0, enableHighAccuracy: true }
       );
     });
   },
@@ -849,7 +884,9 @@ async function pageProfile() {
   try {
     const pos = await SP.locate();
     const pinNow = pos || (Number.isFinite(Number(me.lat)) && Number.isFinite(Number(me.lng)) ? { lat: Number(me.lat), lng: Number(me.lng) } : null);
+    if (pinNow && !pinNow.city) Object.assign(pinNow, await SP.placeOf(pinNow.lat, pinNow.lng));
     me = pinNow ? await SP.api("/api/me", { body: pinNow }) : await SP.api("/api/me");
+    me = SP.mergePlace(me, pinNow);
     SP.setSession(SP.token(), me);
     showView(me);
   } catch (e) {
@@ -875,7 +912,8 @@ async function pageProfile() {
   document.getElementById("save").onclick = async () => {
     msg.className = "ok";
     try {
-      me = await SP.api("/api/me", { body: { name: name.value, address: address.value, ...(pin || {}) } });
+      const sent = { name: name.value, address: address.value, ...(pin || {}) };
+      me = SP.mergePlace(await SP.api("/api/me", { body: sent }), sent);
       SP.setSession(SP.token(), me);
       showView(me);
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
