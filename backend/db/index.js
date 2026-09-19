@@ -23,4 +23,16 @@ db.listings.createIndex({ providerId: 1, status: 1 });
 db.need_requests.createIndex({ seekerId: 1, status: 1 });
 db.orders.createIndex({ seekerId: 1, providerId: 1, status: 1 });
 
+db.loadFromAtlas = async function () {
+  await Promise.all([
+    db.users.loadFromAtlas(),
+    db.listings.loadFromAtlas(),
+    db.need_requests.loadFromAtlas(),
+    db.orders.loadFromAtlas(),
+    db.reviews.loadFromAtlas(),
+    db.reports.loadFromAtlas(),
+    db.categories.loadFromAtlas()
+  ]);
+};
+
 module.exports = db;

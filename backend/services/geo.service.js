@@ -34,33 +34,63 @@ function placeFrom(addr) {
   return { city, state, country, area, address: area };
 }
 
-async function reverse(lat, lng) {
-  const key = "18:" + Number(lat).toFixed(4) + "," + Number(lng).toFixed(4);
-  if (placeCache.has(key)) return placeCache.get(key);
+async function getJson(url, headers, ms) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 5000);
+  const t = setTimeout(() => ctrl.abort(), ms);
   try {
-    const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat="
-      + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lng);
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Bhojaa/1.0 (https://github.com/bhojaa01/bhojaa)", Accept: "application/json" },
-      signal: ctrl.signal
-    });
-    if (!res.ok) {
-      placeCache.set(key, null);
-      setTimeout(() => { if (placeCache.get(key) == null) placeCache.delete(key); }, 60000);
-      return null;
-    }
-    const place = placeFrom((await res.json()).address);
-    placeCache.set(key, place);
-    return place;
+    const res = await fetch(url, { headers, signal: ctrl.signal });
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    placeCache.set(key, null);
-    setTimeout(() => { if (placeCache.get(key) == null) placeCache.delete(key); }, 60000);
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+
+function fromBigData(data) {
+  if (!data) return null;
+  const city = data.city || data.locality || "";
+  const state = data.principalSubdivision || "";
+  const country = data.countryName || "";
+  const adm = ((data.localityInfo || {}).administrative || [])
+    .slice()
+    .sort((a, b) => (b.adminLevel || 0) - (a.adminLevel || 0));
+  const area = uniq(adm.map((a) => a && a.name))
+    .filter((p) => p && p !== city && p !== state && p !== country)[0] || "";
+  if (!city && !state && !country) return null;
+  return { city, state, country, area, address: area || city };
+}
+
+async function reverse(lat, lng) {
+  const key = "18:" + Number(lat).toFixed(4) + "," + Number(lng).toFixed(4);
+  if (placeCache.has(key)) return placeCache.get(key);
+  const [nomRaw, bdRaw] = await Promise.all([
+    getJson(
+      "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat="
+        + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lng),
+      { "User-Agent": "Bhojaa/1.0 (https://github.com/bhojaa01/bhojaa)", Accept: "application/json" },
+      6000
+    ),
+    getJson(
+      "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="
+        + encodeURIComponent(lat) + "&longitude=" + encodeURIComponent(lng) + "&localityLanguage=en",
+      { Accept: "application/json" },
+      6000
+    )
+  ]);
+  const nom = placeFrom(nomRaw && nomRaw.address);
+  const bd = fromBigData(bdRaw);
+  const place = {
+    city: nom.city || (bd && bd.city) || "",
+    state: nom.state || (bd && bd.state) || "",
+    country: nom.country || (bd && bd.country) || "",
+    area: nom.area || (bd && bd.area) || "",
+    address: nom.address || (bd && bd.address) || ""
+  };
+  if (!place.city && !place.state && !place.country) return null;
+  placeCache.set(key, place);
+  return place;
 }
 
 function cap(item, now) {

@@ -1,8 +1,5 @@
-const seed = require("./db/seed");
 const routes = require("./routes");
 const { json, readBody, cors } = require("./utils/http");
-
-seed();
 
 async function app(req, res) {
   cors(res);

@@ -9,6 +9,7 @@ let done = false;
 module.exports = function seed() {
   if (done) return;
   done = true;
+  if (User.size()) return;
   Category.create({ name: "Tiffin", slug: "tiffin" });
   Category.create({ name: "Meals", slug: "meals" });
   Category.create({ name: "Fruit", slug: "fruit" });
