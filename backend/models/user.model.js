@@ -36,18 +36,22 @@ function thinAddress(s) {
   return !t || t === "koramangala, bengaluru";
 }
 
-async function setLocation(user, lng, lat) {
+function applyPlace(user, place) {
+  if (!place) return;
+  if (place.city) user.city = String(place.city).trim();
+  if (place.state) user.state = String(place.state).trim();
+  if (place.country) user.country = String(place.country).trim();
+  if (place.address && thinAddress(user.address)) user.address = String(place.address).trim();
+}
+
+async function setLocation(user, lng, lat, given) {
   const prev = latLng(user.location);
   const same = Math.abs(prev.lat - lat) < 0.0005 && Math.abs(prev.lng - lng) < 0.0005;
   user.location = point(lng, lat);
-  if (!(same && user.city && user.state && user.country && !thinAddress(user.address))) {
-    const place = await geo.reverse(lat, lng);
-    if (place) {
-      user.city = place.city;
-      user.state = place.state;
-      user.country = place.country;
-      if (place.address) user.address = place.address;
-    }
+  if (given && (given.city || given.state || given.country)) {
+    applyPlace(user, given);
+  } else if (!(same && user.city && user.state && user.country && !thinAddress(user.address))) {
+    applyPlace(user, await geo.reverse(lat, lng));
   }
   db.users.updateById(user._id, {
     location: user.location,

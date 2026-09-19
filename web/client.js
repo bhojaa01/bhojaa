@@ -19,7 +19,26 @@ const SP = {
     return new Promise((resolve) => {
       if (!navigator.geolocation) return resolve(null);
       navigator.geolocation.getCurrentPosition(
-        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        async (p) => {
+          const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+          try {
+            const r = await fetch(
+              "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="
+                + pos.lat + "&longitude=" + pos.lng + "&localityLanguage=en"
+            );
+            const d = await r.json();
+            const city = d.city || d.locality || "";
+            const state = d.principalSubdivision || "";
+            const country = d.countryName || "";
+            const adm = ((d.localityInfo || {}).administrative || [])
+              .slice()
+              .sort((a, b) => (b.adminLevel || 0) - (a.adminLevel || 0));
+            const area = (adm.map((a) => a && a.name).find((n) => n && n !== city && n !== state && n !== country)) || "";
+            resolve({ ...pos, city, state, country, address: area || city });
+          } catch {
+            resolve(pos);
+          }
+        },
         () => resolve(null),
         { timeout: 8000, maximumAge: 300000, enableHighAccuracy: false }
       );

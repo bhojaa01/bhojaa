@@ -30,7 +30,7 @@ async function login(rawPhone, otp, extra) {
   const lat = Number(extra.lat);
   const lng = Number(extra.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    await User.setLocation(user, lng, lat);
+    await User.setLocation(user, lng, lat, extra);
   }
   const token = Token.createUser(user._id);
   return { token, user: await profile(user) };
@@ -70,7 +70,7 @@ async function updateProfile(user, body) {
   const lat = Number(body.lat);
   const lng = Number(body.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    await User.setLocation(user, lng, lat);
+    await User.setLocation(user, lng, lat, body);
   }
   return await profile(user);
 }

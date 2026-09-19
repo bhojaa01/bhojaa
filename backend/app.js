@@ -13,7 +13,7 @@ async function app(req, res) {
     try { req.body = await readBody(req); }
     catch { return json(res, 400, { error: "Invalid JSON" }); }
   }
-  if (p === "/health") return json(res, 200, { ok: true });
+  if (p === "/health") return json(res, 200, { ok: true, v: "place-1" });
   if (p.startsWith("/api/")) {
     try {
       const hit = await routes.handle(req, res);
