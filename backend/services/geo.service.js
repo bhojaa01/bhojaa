@@ -94,7 +94,9 @@ async function reverse(lat, lng) {
 }
 
 function cap(item, now) {
-  const m = (item.availableUntil - now) / 60000;
+  const until = item.availableUntil instanceof Date ? item.availableUntil.getTime() : Number(item.availableUntil);
+  const n = now instanceof Date ? now.getTime() : Number(now);
+  const m = (until - n) / 60000;
   if (m <= 0) return 0;
   let k = m <= 60 ? 1 : m <= 180 ? 2 : 5;
   if (item.category === "tiffin" || item.category === "meals") k = Math.min(k, 2);
@@ -110,27 +112,29 @@ function untilFrom(body, fallbackMin) {
     if (t > Date.now() + 14 * 24 * 60 * 60 * 1000) {
       throw Object.assign(new Error("Must be within 14 days"), { status: 400 });
     }
-    return t;
+    return new Date(t);
   }
   const v = body.until || body.when || body.time;
   if (v === "tonight") {
     const t = new Date();
     t.setHours(21, 0, 0, 0);
     if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
-    return t.getTime();
+    return t;
   }
   if (v === "tomorrow") {
     const t = new Date();
     t.setDate(t.getDate() + 1);
     t.setHours(10, 0, 0, 0);
-    return t.getTime();
+    return t;
   }
   const m = Number(v || body.untilMinutes);
-  return Date.now() + (Number.isFinite(m) && m > 0 ? m : fallbackMin) * 60 * 1000;
+  return new Date(Date.now() + (Number.isFinite(m) && m > 0 ? m : fallbackMin) * 60 * 1000);
 }
 
 function minutesLeft(until, now) {
-  return Math.max(0, Math.round((until - now) / 60000));
+  const a = until instanceof Date ? until.getTime() : Number(until);
+  const b = now instanceof Date ? now.getTime() : Number(now);
+  return Math.max(0, Math.round((a - b) / 60000));
 }
 
 module.exports = { km, latLng, point, distanceKm, cap, untilFrom, minutesLeft, reverse };

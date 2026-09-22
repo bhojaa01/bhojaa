@@ -4,7 +4,7 @@ function create(data) {
   return db.categories.insertOne({
     name: data.name,
     slug: data.slug,
-    createdAt: Date.now()
+    createdAt: new Date()
   });
 }
 

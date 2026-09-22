@@ -15,7 +15,8 @@ function create(data) {
     state: data.state || "",
     country: data.country || "",
     role: data.role || "user",
-    createdAt: Date.now()
+    roles: data.role && data.role !== "user" ? [data.role] : [],
+    createdAt: new Date()
   });
 }
 
@@ -75,6 +76,7 @@ function dump(u) {
     phone: u.phone,
     profile: u.profile,
     role: u.role,
+    roles: u.roles || [],
     address: u.address,
     city: u.city || "",
     state: u.state || "",
@@ -94,4 +96,8 @@ function size() {
   return db.users.size();
 }
 
-module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size };
+function save(user) {
+  return db.users.save(user);
+}
+
+module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save };

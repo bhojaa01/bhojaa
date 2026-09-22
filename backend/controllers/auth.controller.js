@@ -1,8 +1,8 @@
 const authService = require("../services/auth.service");
 const { json, tokenOf } = require("../utils/http");
 
-function sendOtp(req, res) {
-  try { json(res, 200, authService.sendOtp(req.body.phone)); }
+async function sendOtp(req, res) {
+  try { json(res, 200, await authService.sendOtp(req.body.phone)); }
   catch (e) { json(res, e.status || 500, { error: e.message, resendIn: e.resendIn }); }
 }
 

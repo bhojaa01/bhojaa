@@ -1,8 +1,10 @@
 const { distanceKm } = require("./geo");
 const { col } = require("./mongo");
+const { stamp } = require("./time");
 
-function Collection(name) {
+function Collection(name, prefix) {
   this.name = name;
+  this.prefix = prefix || "";
   this.docs = [];
   this._seq = 1;
   this.indexes = [];
@@ -13,12 +15,43 @@ Collection.prototype.createIndex = function (spec) {
   return this;
 };
 
+Collection.prototype.nextId = function () {
+  if (!this.prefix) return String(this._seq++);
+  let max = 1000;
+  const re = new RegExp("^" + this.prefix + "(\\d+)$", "i");
+  this.docs.forEach((d) => {
+    const m = String(d._id || "").match(re);
+    if (m) max = Math.max(max, Number(m[1]));
+  });
+  return this.prefix + (max + 1);
+};
+
 Collection.prototype.insertOne = function (doc) {
-  const row = { _id: String(this._seq++), ...doc };
+  const id = doc && doc._id ? String(doc._id) : this.nextId();
+  const row = stamp({ ...doc, _id: id });
   this.docs.push(row);
   const c = col(this.name);
   if (c) c.insertOne({ ...row }).catch((e) => console.log("Atlas insert", this.name, e.message));
   return row;
+};
+
+Collection.prototype.migrateIds = function () {
+  if (!this.prefix) return [];
+  const re = new RegExp("^" + this.prefix + "\\d+$", "i");
+  const map = [];
+  this.docs.slice().forEach((row) => {
+    if (re.test(String(row._id))) return;
+    const old = String(row._id);
+    const id = this.nextId();
+    const i = this.docs.findIndex((d) => String(d._id) === old);
+    if (i >= 0) this.docs.splice(i, 1);
+    const c = col(this.name);
+    if (c) c.deleteOne({ _id: old }).catch(() => {});
+    row._id = id;
+    this.save(row);
+    map.push([old, id]);
+  });
+  return map;
 };
 
 Collection.prototype.find = function (query) {
@@ -32,15 +65,16 @@ Collection.prototype.findOne = function (query) {
 };
 
 Collection.prototype.findById = function (id) {
-  return this.docs.find((d) => d._id === String(id)) || null;
+  const s = String(id);
+  return this.docs.find((d) => String(d._id) === s) || null;
 };
 
 Collection.prototype.updateById = function (id, patch) {
   const row = this.findById(id);
   if (!row) return null;
-  Object.assign(row, patch);
+  Object.assign(row, stamp(patch));
   const c = col(this.name);
-  if (c) c.updateOne({ _id: String(id) }, { $set: patch }).catch((e) => console.log("Atlas update", e.message));
+  if (c) c.updateOne({ _id: String(id) }, { $set: stamp({ ...patch }) }).catch((e) => console.log("Atlas update", e.message));
   return row;
 };
 
@@ -64,14 +98,29 @@ Collection.prototype.size = function () {
   return this.docs.length;
 };
 
+Collection.prototype.save = function (row) {
+  if (!row || row._id == null) return row;
+  const id = String(row._id);
+  row._id = id;
+  const i = this.docs.findIndex((d) => String(d._id) === id);
+  if (i < 0) this.docs.push(row);
+  else this.docs[i] = row;
+  const c = col(this.name);
+  stamp(row);
+  if (c) c.replaceOne({ _id: id }, { ...row }, { upsert: true }).catch((e) => console.log("DB save", this.name, e.message));
+  return row;
+};
+
 Collection.prototype.loadFromAtlas = async function () {
   const c = col(this.name);
   if (!c) return;
   const rows = await c.find({}).toArray();
-  if (!rows.length) return;
-  this.docs = rows;
-  const max = rows.reduce((m, r) => Math.max(m, Number(r._id) || 0), 0);
+  this.docs = rows.map((r) => stamp({ ...r, _id: String(r._id) }));
+  const max = this.docs.reduce((m, r) => Math.max(m, Number(r._id) || 0), 0);
   this._seq = max + 1;
+  if (c && this.docs.length) {
+    await Promise.all(this.docs.map((row) => c.replaceOne({ _id: String(row._id) }, { ...row }, { upsert: true })));
+  }
 };
 
 module.exports = Collection;

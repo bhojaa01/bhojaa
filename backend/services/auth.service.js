@@ -1,8 +1,13 @@
 const config = require("../config");
 const { User, Otp, Token } = require("../models");
 const { phoneOf } = require("../utils/http");
+const kapso = require("./kapso.service");
 
-function sendOtp(rawPhone) {
+function makeCode() {
+  return kapso.on() ? String(Math.floor(1000 + Math.random() * 9000)) : config.otp;
+}
+
+async function sendOtp(rawPhone) {
   const phone = phoneOf(rawPhone);
   if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
   const wait = Otp.resendWait(phone);
@@ -14,8 +19,13 @@ function sendOtp(rawPhone) {
   }
   const isNew = !User.findByPhone(phone);
   if (isNew) User.ensure(phone);
-  Otp.set(phone, config.otp);
-  return { ok: true, registered: isNew, resendIn: 30, message: isNew ? "Number registered. OTP sent. Use 1234" : "OTP sent. Use 1234" };
+  const code = makeCode();
+  Otp.set(phone, code);
+  if (kapso.on()) await kapso.sendOtp(phone, code);
+  const message = kapso.on()
+    ? (isNew ? "Number registered. OTP sent on WhatsApp." : "OTP sent on WhatsApp.")
+    : (isNew ? "Number registered. OTP sent. Use 1234" : "OTP sent. Use 1234");
+  return { ok: true, registered: isNew, resendIn: 30, message };
 }
 
 async function login(rawPhone, otp, extra) {
@@ -32,6 +42,7 @@ async function login(rawPhone, otp, extra) {
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     await User.setLocation(user, lng, lat, extra);
   }
+  User.save(user);
   const token = Token.createUser(user._id);
   return { token, user: await profile(user) };
 }
@@ -69,12 +80,17 @@ async function updateProfile(user, body) {
     if (!name) throw Object.assign(new Error("Name required"), { status: 400 });
     user.profile.name = name;
   }
-  if (body.role === "seeker" || body.role === "giver") user.role = body.role;
+  if (body.role === "seeker" || body.role === "giver") {
+    user.role = body.role;
+    if (!Array.isArray(user.roles)) user.roles = [];
+    if (!user.roles.includes(body.role)) user.roles.push(body.role);
+  }
   const lat = Number(body.lat);
   const lng = Number(body.lng);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     await User.setLocation(user, lng, lat, body);
   }
+  User.save(user);
   return await profile(user);
 }
 

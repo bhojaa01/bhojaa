@@ -7,7 +7,7 @@ function create(data) {
     toUserId: data.toUserId,
     rating: data.rating,
     comment: data.comment || "",
-    createdAt: Date.now()
+    createdAt: new Date()
   });
 }
 

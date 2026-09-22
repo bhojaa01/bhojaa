@@ -15,7 +15,7 @@ function create(data) {
     address: data.address,
     availableUntil: data.availableUntil,
     status: data.status || "open",
-    createdAt: Date.now()
+    createdAt: new Date()
   });
 }
 
@@ -28,7 +28,8 @@ function remove(id) {
 }
 
 function findByProvider(providerId) {
-  return db.listings.find({ providerId });
+  const id = String(providerId);
+  return db.listings.find((d) => String(d.providerId) === id);
 }
 
 function open() {
@@ -43,4 +44,8 @@ function all() {
   return db.listings.find();
 }
 
-module.exports = { create, findById, remove, findByProvider, open, geoNear, all };
+function save(row) {
+  return db.listings.save(row);
+}
+
+module.exports = { create, findById, remove, findByProvider, open, geoNear, all, save };

@@ -7,8 +7,8 @@ function create(data) {
     seekerId: data.seekerId,
     providerId: data.providerId,
     status: data.status || "requested",
-    createdAt: Date.now(),
-    acceptedAt: data.status === "accepted" ? Date.now() : null,
+    createdAt: new Date(),
+    acceptedAt: data.status === "accepted" ? new Date() : null,
     collectedAt: null
   });
 }
@@ -18,11 +18,18 @@ function findById(id) {
 }
 
 function findForUser(userId) {
-  return db.orders.find((o) => o.seekerId === userId || o.providerId === userId);
+  const id = String(userId);
+  return db.orders.find((o) => String(o.seekerId) === id || String(o.providerId) === id);
 }
 
 function findByListing(listingId) {
-  return db.orders.find({ listingId });
+  const id = String(listingId);
+  return db.orders.find((o) => String(o.listingId) === id);
+}
+
+function findByNeed(needRequestId) {
+  const id = String(needRequestId);
+  return db.orders.find((o) => String(o.needRequestId) === id);
 }
 
 function findActiveRequest(listingId, seekerId) {
@@ -49,7 +56,11 @@ function collectedBySeeker(seekerId) {
   return db.orders.find((o) => o.seekerId === seekerId && o.status === "collected").length;
 }
 
+function save(row) {
+  return db.orders.save(row);
+}
+
 module.exports = {
-  create, findById, findForUser, findByListing, findActiveRequest, all,
+  create, findById, findForUser, findByListing, findByNeed, findActiveRequest, all, save,
   collectedByListing, waitingByListing, collectedByProvider, collectedBySeeker
 };

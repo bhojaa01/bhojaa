@@ -7,7 +7,7 @@ function create(data) {
     targetId: data.targetId,
     reason: data.reason,
     status: "open",
-    createdAt: Date.now()
+    createdAt: new Date()
   });
 }
 

@@ -110,8 +110,16 @@ const SP = {
     return Math.round(min / 60) + " hr left";
   },
   when(t) {
-    if (!t) return "—";
-    return new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    if (t == null || t === "") return "—";
+    const d = new Date(typeof t === "number" && t < 1e12 ? t * 1000 : t);
+    if (!Number.isFinite(d.getTime())) return "—";
+    const date = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return date + ", " + time;
+  },
+  who(name, phone) {
+    const n = name || "Neighbor";
+    return phone ? n + " · " + phone : n;
   },
   statusLabel(s) {
     return ({ requested: "Waiting", accepted: "Accepted", collected: "Collected", declined: "Declined", open: "Open", reserved: "Reserved", done: "Done", matched: "Matched", expired: "Expired" })[s] || s;
@@ -124,6 +132,29 @@ function role() {
 
 function home() {
   return role() === "giver" ? "provider.html" : "app.html";
+}
+
+const PAGE = 10;
+function takeMore(rows, n) {
+  const all = rows || [];
+  const take = Math.min(Math.max(PAGE, n || PAGE), all.length);
+  return { rows: all.slice(0, take), shown: take, total: all.length, more: take < all.length };
+}
+function moreBar(key, shown, total) {
+  if (!total) return "";
+  if (shown >= total) return `<p class="muted pager-meta">${total} item${total === 1 ? "" : "s"}</p>`;
+  return `<p class="muted pager-meta" data-more="${key}">${shown} of ${total}</p>`;
+}
+function watchMore(root, onMore) {
+  (root.querySelectorAll("[data-more]") || []).forEach((el) => {
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0] && entries[0].isIntersecting) {
+        io.disconnect();
+        onMore(el.dataset.more);
+      }
+    }, { rootMargin: "180px" });
+    io.observe(el);
+  });
 }
 
 function bindWhenPicker(rootId, hiddenId, btnId) {
@@ -243,6 +274,11 @@ function paintNav() {
   const nav = document.querySelector(".nav");
   const r = role();
   const page = document.body.dataset.page;
+  const top = document.querySelector(".top");
+  if (top) {
+    const box = top.querySelector(".mode-toggle");
+    if (box) box.remove();
+  }
   const logo = document.querySelector(".logo");
   if (logo && !logo.querySelector(".mode")) {
     const chip = document.createElement("a");
@@ -250,6 +286,9 @@ function paintNav() {
     chip.href = "role.html";
     chip.textContent = r === "giver" ? "Give" : r === "seeker" ? "Need" : "";
     if (chip.textContent) logo.appendChild(chip);
+  } else if (logo) {
+    const chip = logo.querySelector(".mode");
+    if (chip) chip.textContent = r === "giver" ? "Give" : r === "seeker" ? "Need" : "";
   }
   if (!nav) return;
   if (r === "giver") {
@@ -361,9 +400,7 @@ async function pageLogin() {
         await pickRole(want);
         return;
       }
-      if (data.user.role === "giver") location.href = "provider.html";
-      else if (data.user.role === "seeker") location.href = "app.html";
-      else location.href = "role.html";
+      location.href = "role.html";
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
 }
@@ -412,18 +449,21 @@ async function pageNearby() {
         return;
       }
       rows.forEach((l) => { try { sessionStorage.setItem("sp_listing_" + l.id, JSON.stringify(l)); } catch {} });
-      grid.innerHTML = rows.map((l) => `
-        <a class="card" href="listing.html?id=${l.id}">
-          <div class="card-media">
-            <img src="${l.image}" alt="">
-            <span class="chip">${l.distance} km</span>
-            <span class="chip time">${SP.left(l.minLeft)}</span>
-          </div>
-          <div class="pad">
-            <div class="row"><h3>${l.name}</h3><span class="badge">${l.mine ? "YOURS" : (l.diet || "veg").toUpperCase()}</span></div>
-            <p class="meta">${l.servings} serving${l.servings === 1 ? "" : "s"} · ${(l.category || "meal")}${l.mine ? " · your listing" : ""}</p>
-          </div>
-        </a>`).join("");
+      const qBox = document.getElementById("q");
+      let shown = PAGE;
+      function filtered() {
+        const q = ((qBox && qBox.value) || "").trim().toLowerCase();
+        return q ? rows.filter((l) => (l.name || "").toLowerCase().includes(q)) : rows;
+      }
+      function paintRows() {
+        const list = filtered();
+        const s = takeMore(list, shown);
+        shown = s.shown;
+        grid.innerHTML = s.rows.map(extraFoodCard).join("") + moreBar("near", s.shown, s.total);
+        watchMore(grid, () => { shown += PAGE; paintRows(); });
+      }
+      if (qBox) qBox.oninput = () => { shown = PAGE; paintRows(); };
+      paintRows();
     } catch (e) {
       count.textContent = "";
       grid.innerHTML = `<div class="card"><div class="pad"><p class="err">${e.message}</p></div></div>`;
@@ -476,7 +516,7 @@ async function pageListing() {
       const reqs = data.requests || [];
       action = reqs.length
         ? reqs.map((o) => `<button class="btn" type="button" data-accept="${o.id}">Accept pickup request</button>`).join("")
-        : '<p class="muted">Waiting for someone in Need mode to request this.</p><p style="margin-top:10px"><a class="btn" href="mine.html">Open Mine</a></p>';
+        : '<p class="muted">Waiting for a pickup request.</p><p style="margin-top:10px"><a class="btn" href="mine.html">Open Mine</a></p>';
     } else if (giver) {
       action = '<p class="muted">You are in Give mode.</p><p style="margin-top:10px"><a class="btn" href="role.html">Switch to Need</a></p>';
     } else if (l.mine) {
@@ -525,11 +565,30 @@ async function pageListing() {
   }
 }
 
+function extraFoodCard(l) {
+  const wait = (l.waiting || 0) > 0;
+  const done = l.status === "done" || (l.given || 0) > 0;
+  const badge = done ? '<span class="badge">Collected</span>' : wait ? '<span class="badge time">Waiting</span>' : "";
+  return `<article class="food-row">
+    <img src="${l.image}" alt="">
+    <div class="food-body">
+      <span class="food-tag">Posted extra food</span>
+      <h3>${l.name}</h3>
+      <p class="food-line"><span>Servings</span><b>${l.servings}</b></p>
+      <p class="food-line"><span>Available until</span><b>${SP.when(l.until)}</b></p>
+      <p class="food-line"><span>Pickup requests</span><b>${(l.waiting || 0) + (l.given || 0)}</b></p>
+      ${badge}
+      <a class="btn food-cta" href="listing.html?id=${l.id}">Open extra food</a>
+    </div>
+  </article>`;
+}
+
 function nearbyNeedCard(n) {
   return `<div class="card req-card"><div class="pad">
     <div class="row"><h3>${n.what}</h3><span class="badge">${n.servings} serving${n.servings === 1 ? "" : "s"}</span></div>
     <p class="req-note muted">A neighbor nearby needs this. Accept to share your pickup address.</p>
     <div class="kv"><span>Distance</span><b>${n.distance} km</b></div>
+    <div class="kv"><span>Posted</span><b>${SP.when(n.createdAt)}</b></div>
     <div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>
     <div class="kv"><span>Time left</span><b>${SP.left(n.minLeft)}</b></div>
     <p class="row" style="margin-top:14px">
@@ -636,21 +695,54 @@ async function pageGive() {
         address: document.getElementById("address").value,
         ...pos
       }});
-      location.href = "mine.html";
+      location.href = "provider.html";
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
+  const posted = document.getElementById("posted");
+  if (posted) {
+    try {
+      const mine = await SP.api("/api/mine");
+      const list = mine.listings || [];
+      const qBox = document.getElementById("q");
+      let shown = PAGE;
+      function filtered() {
+        const q = ((qBox && qBox.value) || "").trim().toLowerCase();
+        return q ? list.filter((l) => (l.name || "").toLowerCase().includes(q)) : list;
+      }
+      function paintPosted() {
+        const rows = filtered();
+        if (!rows.length) {
+          posted.innerHTML = '<div class="card"><div class="pad"><p class="muted">No extra food posted yet.</p></div></div>';
+          return;
+        }
+        const s = takeMore(rows, shown);
+        shown = s.shown;
+        posted.innerHTML = s.rows.map(extraFoodCard).join("") + moreBar("posted", s.shown, s.total);
+        watchMore(posted, () => { shown += PAGE; paintPosted(); });
+      }
+      if (qBox) qBox.oninput = () => { shown = PAGE; paintPosted(); };
+      paintPosted();
+    } catch (e) {
+      posted.innerHTML = `<p class="err">${e.message}</p>`;
+    }
+  }
   const needId = SP.qs("need");
   try {
     const q = pos ? "?lat=" + pos.lat + "&lng=" + pos.lng + "&km=10" : "?km=10";
     const data = await SP.api("/api/needs" + q);
     const open = (data.needs || []).filter((n) => !n.mine && n.status === "open");
     if (!open.length) {
-      const n = data.nearest;
-      const extra = n && !n.mine ? ` Nearest is ${n.what} at ${n.distance} km.` : "";
-      needsBox.innerHTML = `<div class="card"><div class="pad"><p class="muted">No need posts right now.${extra}</p></div></div>`;
+      needsBox.innerHTML = "";
     } else {
-      needsBox.innerHTML = open.map(nearbyNeedCard).join("");
-      bindNeedOffers(needsBox, msg, open);
+      let shown = PAGE;
+      function paintNeeds() {
+        const s = takeMore(open, shown);
+        shown = s.shown;
+        needsBox.innerHTML = s.rows.map(nearbyNeedCard).join("") + moreBar("give-needs", s.shown, s.total);
+        bindNeedOffers(needsBox, msg, open);
+        watchMore(needsBox, () => { shown += PAGE; paintNeeds(); });
+      }
+      paintNeeds();
     }
     if (needId) {
       const hit = open.find((n) => n.id === needId) || { id: needId };
@@ -665,125 +757,165 @@ async function pageMine() {
   if (!requireMode()) return;
   const root = document.getElementById("root");
   try {
-    const pos = await SP.locate();
+    const dataP = SP.api("/api/mine");
+    const posP = SP.locate();
+    const data = await dataP;
+    const pos = await posP;
     if (pos) {
       try {
         const me = await SP.api("/api/me", { body: pos });
         SP.setSession(SP.token(), me);
       } catch {}
     }
-    const q = pos ? "?lat=" + pos.lat + "&lng=" + pos.lng + "&km=10" : "?km=10";
-    const [data, needData] = await Promise.all([
-      SP.api("/api/mine"),
-      role() === "giver" ? SP.api("/api/needs" + q).catch(() => ({ needs: [] })) : Promise.resolve({ needs: [] })
-    ]);
-    const incoming = data.listings.flatMap((l) => l.requests.filter((r) => r.status === "requested"));
+    const incomingAll = data.listings.flatMap((l) => l.requests.filter((r) => r.status === "requested"));
+    const givenAll = data.listings || [];
+    const extraGiveAll = (data.orders || []).filter((o) => o.mineGive && !givenAll.some((l) => l.id === o.listingId));
+    givenAll.sort((a, b) => {
+      function rank(x) {
+        if (x.status === "done" || (x.given || 0) > 0) return 1;
+        if (x.status === "expired" || x.minLeft <= 0 || x.status === "inactive") return 2;
+        return 0;
+      }
+      const d = rank(a) - rank(b);
+      return d || (b.createdAt || 0) - (a.createdAt || 0);
+    });
+    const needRowsAll = [];
+    {
+      const needs = data.needs || [];
+      const got = (data.orders || []).filter((o) => o.mineRequest);
+      const seen = new Set();
+      needs.forEach((n) => {
+        const o = got.find((x) => String(x.needId) === String(n.id)) || null;
+        if (o) seen.add(o.id);
+        needRowsAll.push({ n, o });
+      });
+      got.forEach((o) => { if (!seen.has(o.id)) needRowsAll.push({ n: null, o }); });
+    }
+    let shown = { incoming: PAGE, gave: PAGE, req: PAGE };
+    function bindMine() {
+      bindNeedOffers(root);
+      root.querySelectorAll("[data-accept]").forEach((b) => {
+        b.onclick = async () => {
+          try {
+            await SP.api("/api/orders/" + b.dataset.accept + "/accept", { body: {} });
+            location.reload();
+          } catch (e) { alert(e.message); }
+        };
+      });
+      root.querySelectorAll("[data-del-need]").forEach((b) => {
+        b.onclick = async () => {
+          try {
+            await SP.api("/api/needs/" + b.dataset.delNeed + "/delete", { body: {} });
+            location.reload();
+          } catch (e) { alert(e.message); }
+        };
+      });
+      root.querySelectorAll("[data-inactive]").forEach((b) => {
+        b.onclick = async () => {
+          try {
+            await SP.api("/api/listings/" + b.dataset.inactive + "/inactive", { body: {} });
+            location.reload();
+          } catch (e) { alert(e.message); }
+        };
+      });
+      watchMore(root, (key) => {
+        shown[key] = (shown[key] || PAGE) + PAGE;
+        paintMine();
+      });
+    }
+    function paintMine() {
     const parts = [];
     if (role() === "giver") {
-      const nearbyNeeds = (needData.needs || []).filter((n) => !n.mine && n.status === "open");
-      parts.push("<h2>Neighbors who need food</h2>");
-      if (!nearbyNeeds.length) parts.push('<div class="card"><div class="pad"><p class="muted">No nearby need posts. Publish extra food from Give.</p></div></div>');
-      nearbyNeeds.forEach((n) => parts.push(nearbyNeedCard(n)));
+      const incoming = takeMore(incomingAll, shown.incoming);
       parts.push("<h2>Pickup requests</h2>");
-      if (!incoming.length) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Wait for someone in Need mode.</p></div></div>');
-      incoming.forEach((o) => {
+      if (!incoming.total) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Wait for someone in Need mode.</p></div></div>');
+      incoming.rows.forEach((o) => {
         parts.push(`<div class="card req-card"><div class="pad">
           <div class="row"><h3>${o.name}</h3><span class="badge time">Waiting</span></div>
           <p class="req-note muted">Someone nearby asked to collect this. Accept to share your address.</p>
+          <div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div>
+          <div class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></div>
           <div class="kv"><span>Servings</span><b>${o.servings}</b></div>
           <div class="kv"><span>Available until</span><b>${SP.when(o.until)}</b></div>
           <div class="kv"><span>Status</span><b>${SP.statusLabel(o.status)}</b></div>
           <p class="row" style="margin-top:14px"><button class="btn" type="button" data-accept="${o.id}">Accept and share address</button></p>
         </div></div>`);
       });
+      parts.push(moreBar("incoming", incoming.shown, incoming.total));
       parts.push("<h2>Food you gave</h2>");
-      if (!data.listings.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food given yet.</p></div></div>');
-      data.listings.sort((a, b) => {
-        function rank(x) {
-          if (x.status === "done" || (x.given || 0) > 0) return 1;
-          if (x.status === "expired" || x.minLeft <= 0) return 2;
-          return 0;
-        }
-        const d = rank(a) - rank(b);
-        return d || (b.createdAt || 0) - (a.createdAt || 0);
-      });
-      data.listings.forEach((l) => {
+      const givenCards = [];
+      if (!givenAll.length && !extraGiveAll.length) givenCards.push('<div class="card"><div class="pad"><p class="muted">No food given yet. Publish a listing from <a href="provider.html">Give</a>.</p></div></div>');
+      givenAll.forEach((l) => {
         const done = l.status === "done" || (l.given || 0) > 0;
-        const expired = !done && (l.status === "expired" || l.minLeft <= 0);
-        const note = done ? "Pickup completed." : expired ? "Available-until time has passed." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
-        parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
-          <div class="row"><h3>${l.name}</h3><span class="badge${expired ? " exp" : ""}">${done ? "Done" : expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
+        const off = l.status === "inactive";
+        const expired = !done && !off && (l.status === "expired" || l.minLeft <= 0);
+        const note = done ? "Pickup completed." : off ? "Inactive. Hidden from Nearby." : expired ? "Unaccepted and expired." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
+        const folks = (l.history || l.requests || []);
+        const whoNeed = folks.length
+          ? folks.map((o) => `<div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div><div class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></div>${o.acceptedAt ? `<div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></div>` : ""}${o.collectedAt ? `<div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>` : ""}`).join("")
+          : '<div class="kv"><span>Need</span><b>No one yet</b></div>';
+        givenCards.push(`<div class="card req-card${expired || off ? " is-expired" : ""}"><div class="pad">
+          <div class="row"><h3>${l.name}</h3><span class="badge${expired || off ? " exp" : ""}">${done ? "Collected" : off ? "Inactive" : expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
           <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
-          <div class="kv"><span>Available until</span><b>${SP.when(l.until)}</b></div>
+          ${whoNeed}
           <div class="kv"><span>Posted</span><b>${SP.when(l.createdAt)}</b></div>
+          <div class="kv"><span>Available until</span><b>${SP.when(l.until)}</b></div>
           <div class="kv"><span>Servings</span><b>${l.servings}</b></div>
           <div class="kv"><span>Category</span><b>${l.category || "meal"} · ${(l.diet || "veg").toUpperCase()}</b></div>
-          <div class="kv"><span>Time left</span><b>${done ? "Completed" : expired ? "Expired" : SP.left(l.minLeft)}</b></div>
+          <div class="kv"><span>Time left</span><b>${done ? "Completed" : off || expired ? "Expired" : SP.left(l.minLeft)}</b></div>
           <div class="kv"><span>Pickups</span><b>${l.given || 0} done · ${l.waiting || 0} waiting</b></div>
-          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-listing="${l.id}">Delete</button></p>` : ""}
+          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-inactive="${l.id}">Set inactive</button></p>` : ""}
         </div></div>`);
       });
+      extraGiveAll.forEach((o) => {
+        givenCards.push(`<div class="card req-card"><div class="pad">
+          <div class="row"><h3>${o.name}</h3><span class="badge">${SP.statusLabel(o.status)}</span></div>
+          <p class="req-note muted">You offered this to a neighbor.</p>
+          <div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div>
+          <div class="kv"><span>Requested</span><b>${SP.when(o.createdAt || o.acceptedAt || o.collectedAt)}</b></div>
+          <div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt || o.collectedAt)}</b></div>
+          <div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>
+          <div class="kv"><span>Servings</span><b>${o.servings}</b></div>
+        </div></div>`);
+      });
+      const gave = takeMore(givenCards, shown.gave);
+      gave.rows.forEach((html) => parts.push(html));
+      parts.push(moreBar("gave", gave.shown, gave.total));
     } else {
-      const needs = data.needs || [];
-      const got = data.orders.filter((o) => o.mineRequest);
+      const rows = takeMore(needRowsAll, shown.req);
       parts.push("<h2>Your requests</h2>");
-      if (!needs.length) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Post one from Need.</p></div></div>');
-      needs.sort((a, b) => {
-        const ae = a.status === "expired" ? 1 : 0;
-        const be = b.status === "expired" ? 1 : 0;
-        if (ae !== be) return ae - be;
-        return (b.createdAt || 0) - (a.createdAt || 0);
-      });
-      needs.forEach((n) => {
-        const expired = n.status === "expired" || n.minLeft <= 0;
-        const note = expired ? "Needed-by time has passed." : n.status === "matched" ? "A giver accepted this request." : "Waiting for a nearby giver to accept.";
+      if (!rows.total) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Post one from Need.</p></div></div>');
+      rows.rows.forEach((row) => {
+        const n = row.n;
+        const o = row.o;
+        const status = (o && o.status) || (n && n.status) || "open";
+        const expired = !o && n && (n.status === "expired" || n.minLeft <= 0);
+        const title = (n && n.what) || (o && o.name) || "Request";
+        const note = expired ? "Needed-by time has passed." : status === "collected" ? "Collected." : status === "accepted" ? "Giver accepted. Collect before expiry." : status === "requested" || status === "matched" ? "Waiting for pickup." : "Waiting for a nearby giver to accept.";
+        const giver = (o && o.giverName) || (n && n.giverName);
+        const giverPhone = (o && o.giver) || (n && n.giver);
+        const open = o && (o.status === "requested" || o.status === "accepted");
         parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
-          <div class="row"><h3>${n.what}</h3><span class="badge${expired ? " exp" : n.status === "matched" ? " time" : ""}">${expired ? "Expired" : SP.statusLabel(n.status)}</span></div>
+          <div class="row"><h3>${title}</h3><span class="badge${expired ? " exp" : status === "accepted" || status === "matched" ? " time" : ""}">${expired ? "Expired" : SP.statusLabel(status)}</span></div>
           <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
-          <div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>
-          <div class="kv"><span>Posted</span><b>${SP.when(n.createdAt)}</b></div>
-          <div class="kv"><span>Servings</span><b>${n.servings}</b></div>
-          <div class="kv"><span>Time left</span><b>${expired ? "Expired" : SP.left(n.minLeft)}</b></div>
-          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-need="${n.id}">Delete</button></p>` : ""}
-        </div></div>`);
-      });
-      parts.push("<h2>Food you got</h2>");
-      if (!got.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food collected yet.</p></div></div>');
-      got.forEach((o) => {
-        const open = o.status === "requested" || o.status === "accepted";
-        parts.push(`<div class="card"><div class="pad">
-          <div class="row"><h3>${o.name}</h3><span class="badge ${o.status === "accepted" ? "time" : ""}">${SP.statusLabel(o.status)}</span></div>
-          <p class="meta">${o.servings} serving${o.servings === 1 ? "" : "s"} · ${o.status === "collected" ? "Collected" : o.status === "accepted" ? "Address unlocked · collect before expiry" : o.status === "requested" ? "Waiting for the giver to accept" : o.status}</p>
+          <div class="kv"><span>Gave</span><b>${giver ? SP.who(giver, giverPhone) : "Waiting for a giver"}</b></div>
+          <div class="kv"><span>Posted</span><b>${SP.when((n && n.createdAt) || (o && o.createdAt))}</b></div>
+          ${n ? `<div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>` : ""}
+          <div class="kv"><span>Requested</span><b>${SP.when((o && o.createdAt) || (n && n.createdAt))}</b></div>
+          ${o && o.acceptedAt ? `<div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></div>` : ""}
+          ${o && o.collectedAt ? `<div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>` : ""}
+          <div class="kv"><span>Servings</span><b>${(n && n.servings) || (o && o.servings) || 1}</b></div>
+          ${n && !expired && !o ? `<div class="kv"><span>Time left</span><b>${SP.left(n.minLeft)}</b></div>` : ""}
           ${open ? `<p style="margin-top:10px"><a class="btn" href="order.html?id=${o.id}">Open pickup</a></p>` : ""}
+          ${expired && n ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-need="${n.id}">Delete</button></p>` : ""}
         </div></div>`);
       });
+      parts.push(moreBar("req", rows.shown, rows.total));
     }
     root.innerHTML = parts.join("");
-    bindNeedOffers(root);
-    root.querySelectorAll("[data-accept]").forEach((b) => {
-      b.onclick = async () => {
-        try {
-          await SP.api("/api/orders/" + b.dataset.accept + "/accept", { body: {} });
-          location.reload();
-        } catch (e) { alert(e.message); }
-      };
-    });
-    root.querySelectorAll("[data-del-need]").forEach((b) => {
-      b.onclick = async () => {
-        try {
-          await SP.api("/api/needs/" + b.dataset.delNeed + "/delete", { body: {} });
-          location.reload();
-        } catch (e) { alert(e.message); }
-      };
-    });
-    root.querySelectorAll("[data-del-listing]").forEach((b) => {
-      b.onclick = async () => {
-        try {
-          await SP.api("/api/listings/" + b.dataset.delListing + "/delete", { body: {} });
-          location.reload();
-        } catch (e) { alert(e.message); }
-      };
-    });
+    bindMine();
+    }
+    paintMine();
   } catch (e) {
     root.innerHTML = `<p class="err">${e.message}</p>`;
   }
@@ -805,6 +937,11 @@ async function pageOrder() {
       <div class="card"><div class="pad">
         <span class="badge ${ready ? "time" : ""}">${SP.statusLabel(o.status)}${ready ? " · Ready" : ""}</span>
         <h3 style="margin:10px 0">${o.name} · ${o.servings} servings</h3>
+        <p class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></p>
+        <p class="kv"><span>Gave</span><b>${SP.who(o.giverName, o.giver)}</b></p>
+        <p class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></p>
+        ${o.acceptedAt ? `<p class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></p>` : ""}
+        ${o.collectedAt ? `<p class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></p>` : ""}
         <p>${o.address ? o.address + "<br>Call after you reach the gate." : o.hint}</p>
         <p class="meta">This listing: ${o.given || 0} pickups done · Giver: ${o.providerGiven || 0} given · You: ${o.seekerCollected || 0} collected</p>
         <p class="ok" id="done">${done ? "Collected. Thank you." : ""}</p>

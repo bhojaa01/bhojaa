@@ -28,4 +28,9 @@ function remove(req, res) {
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
-module.exports = { list, create, get, request, remove };
+function inactive(req, res) {
+  try { json(res, 200, listingService.inactive(req.user, req.params.id)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+module.exports = { list, create, get, request, remove, inactive };

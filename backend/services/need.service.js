@@ -73,7 +73,9 @@ function offer(who, id, body) {
   const address = String(body.address || who.address || "").trim();
   if (!address) throw Object.assign(new Error("Pickup address required"), { status: 400 });
   who.address = address;
+  User.save(who);
   item.status = "matched";
+  NeedRequest.save(item);
   const order = Order.create({
     needRequestId: item._id,
     seekerId: item.seekerId,

@@ -9,7 +9,7 @@ function create(data) {
     location: data.location || point(data.lng, data.lat),
     neededBy: data.neededBy,
     status: data.status || "open",
-    createdAt: Date.now()
+    createdAt: new Date()
   });
 }
 
@@ -22,7 +22,8 @@ function remove(id) {
 }
 
 function findBySeeker(seekerId) {
-  return db.need_requests.find({ seekerId });
+  const id = String(seekerId);
+  return db.need_requests.find((d) => String(d.seekerId) === id);
 }
 
 function open(now) {
@@ -37,4 +38,8 @@ function all() {
   return db.need_requests.find();
 }
 
-module.exports = { create, findById, remove, findBySeeker, open, geoNear, all };
+function save(row) {
+  return db.need_requests.save(row);
+}
+
+module.exports = { create, findById, remove, findBySeeker, open, geoNear, all, save };

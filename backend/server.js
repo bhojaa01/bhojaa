@@ -15,6 +15,7 @@ async function start() {
     console.log("Atlas", e.message);
   }
   seed();
+  try { db.migrateIds(); } catch (e) { console.log("ids", e.message); }
   http.createServer((req, res) => {
     app(req, res).catch(() => {
       res.writeHead(500, { "Content-Type": "application/json" });

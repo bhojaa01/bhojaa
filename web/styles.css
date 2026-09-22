@@ -12,6 +12,21 @@ img{max-width:100%;display:block}
 .wrap{max-width:980px;margin:0 auto;padding:22px 18px 100px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
 .logo{display:flex;align-items:center;gap:10px;font-family:Fraunces,serif;font-weight:700;font-size:1.2rem;color:var(--forest)}
+.mode-toggle{display:flex;background:#efe8dc;border-radius:999px;padding:4px;gap:4px;flex:none}
+.mode-toggle button{border:0;background:transparent;border-radius:999px;padding:8px 18px;font-weight:700;color:var(--soft);cursor:pointer}
+.mode-toggle button.on{background:var(--tomato);color:#fff}
+.page-title{font-size:1.85rem;color:var(--forest);margin:4px 0 12px}
+input#q{border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.section-label{font-weight:700;margin:4px 0 12px}
+.food-list{display:grid;gap:14px}
+.food-row{display:grid;grid-template-columns:118px 1fr;background:var(--paper);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.food-row img{width:100%;height:100%;min-height:168px;object-fit:cover}
+.food-body{padding:12px 14px 14px}
+.food-tag{display:block;font-size:.72rem;font-weight:700;color:var(--soft);margin-bottom:2px}
+.food-body h3{font-size:1.28rem;margin:0 0 6px;color:var(--ink)}
+.food-line{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;padding:7px 0;border-top:1px solid var(--line)}
+.food-line span{color:var(--soft)}
+.food-cta{display:block;width:100%;text-align:center;margin-top:12px;border-radius:14px}
 .brand{width:42px;height:42px;flex:none}
 .btn{background:var(--tomato);color:#fff;border:0;border-radius:999px;padding:12px 18px;font-weight:700;cursor:pointer;display:inline-block}
 .ghost{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:10px 16px;font-weight:600}
@@ -108,9 +123,13 @@ input[readonly]{background:#f3eee4;color:var(--soft)}
   .when-times{border-left:0;border-top:1px solid var(--line);max-height:160px}
   .when-actions{position:sticky;bottom:0}
 }
+.pager{margin:8px 0 18px;justify-content:center}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager-meta{margin:6px 0 16px;font-size:.9rem}
 @media(min-width:860px){
   .hero{grid-template-columns:1.1fr .9fr;align-items:center}
   .grid{grid-template-columns:repeat(2,1fr)}
+  .food-row{grid-template-columns:160px 1fr}
   .nav{position:static;height:auto;background:none;border:0;display:flex;gap:14px;justify-content:flex-end}
   .wrap{padding-bottom:40px}
 }

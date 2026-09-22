@@ -5,21 +5,22 @@ const RESEND_MS = 30 * 1000;
 const LIVE_MS = 10 * 60 * 1000;
 
 function set(phone, code) {
-  const now = Date.now();
+  const now = new Date();
   const existing = db.otps.findOne({ phone });
   if (existing) {
     existing.code = code;
-    existing.expiresAt = now + LIVE_MS;
+    existing.expiresAt = new Date(now.getTime() + LIVE_MS);
     existing.lastSentAt = now;
+    db.otps.save(existing);
     return existing;
   }
-  return db.otps.insertOne({ phone, code: code || config.otp, expiresAt: now + LIVE_MS, lastSentAt: now });
+  return db.otps.insertOne({ phone, code: code || config.otp, expiresAt: new Date(now.getTime() + LIVE_MS), lastSentAt: now });
 }
 
 function take(phone) {
   const row = db.otps.findOne({ phone });
   if (!row) return null;
-  if (row.expiresAt && row.expiresAt < Date.now()) {
+  if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
     clear(phone);
     return null;
   }
@@ -29,7 +30,7 @@ function take(phone) {
 function resendWait(phone) {
   const row = db.otps.findOne({ phone });
   if (!row || !row.lastSentAt) return 0;
-  const left = RESEND_MS - (Date.now() - row.lastSentAt);
+  const left = RESEND_MS - (Date.now() - new Date(row.lastSentAt).getTime());
   return left > 0 ? Math.ceil(left / 1000) : 0;
 }
 

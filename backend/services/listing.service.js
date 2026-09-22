@@ -42,6 +42,7 @@ function view(item, who, now, here) {
 function expireIfNeeded(item) {
   if (item && item.status === "open" && item.availableUntil <= Date.now()) {
     item.status = Order.collectedByListing(item._id) ? "done" : "expired";
+    Listing.save(item);
   }
 }
 
@@ -81,9 +82,12 @@ async function create(who, body) {
   const address = String(body.address || who.address || "").trim();
   if (!address) throw Object.assign(new Error("Pickup address required"), { status: 400 });
   who.address = address;
+  User.save(who);
   const lat = Number(body.lat);
   const lng = Number(body.lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) await User.setLocation(who, lng, lat);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    try { await User.setLocation(who, lng, lat); } catch {}
+  }
   const slug = String(body.category || "meals").toLowerCase();
   const cat = Category.findBySlug(slug);
   const here = User.coords(who);
@@ -144,7 +148,7 @@ function request(who, id) {
 
 function remove(who, id) {
   const item = Listing.findById(id);
-  if (!item || item.providerId !== who._id) throw Object.assign(new Error("Listing not found"), { status: 404 });
+  if (!item || String(item.providerId) !== String(who._id)) throw Object.assign(new Error("Listing not found"), { status: 404 });
   if (item.availableUntil > Date.now() && item.status !== "expired") {
     throw Object.assign(new Error("Only expired listings can be deleted"), { status: 400 });
   }
@@ -152,4 +156,12 @@ function remove(who, id) {
   return { ok: true };
 }
 
-module.exports = { view, nearby, create, get, request, remove };
+function inactive(who, id) {
+  const item = Listing.findById(id);
+  if (!item || String(item.providerId) !== String(who._id)) throw Object.assign(new Error("Listing not found"), { status: 404 });
+  item.status = "inactive";
+  Listing.save(item);
+  return { ok: true };
+}
+
+module.exports = { view, nearby, create, get, request, remove, inactive };
