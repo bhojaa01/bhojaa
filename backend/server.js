@@ -1,3 +1,10 @@
+process.on("uncaughtException", (e) => {
+  console.log("uncaught", e && e.stack ? e.stack : e);
+});
+process.on("unhandledRejection", (e) => {
+  console.log("unhandled", e && e.stack ? e.stack : e);
+});
+
 const http = require("http");
 const path = require("path");
 const port = Number(process.env.PORT || 4000);
@@ -10,7 +17,7 @@ const cors = {
 
 let app = null;
 
-const server = http.createServer((req, res) => {
+http.createServer((req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, cors);
     return res.end();
@@ -23,9 +30,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(500, { ...cors, "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Server error" }));
   });
-});
-
-server.listen(port, "0.0.0.0", () => console.log("API " + port));
+}).listen(port, "0.0.0.0", () => console.log("API " + port));
 
 setImmediate(() => {
   try {
