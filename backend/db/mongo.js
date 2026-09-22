@@ -10,7 +10,7 @@ async function connectMongo() {
   }
   const client = new MongoClient(uri);
   await client.connect();
-  db = client.db();
+  db = client.db("bhojaa");
   console.log("Atlas connected", db.databaseName);
   return db;
 }
