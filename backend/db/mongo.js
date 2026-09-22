@@ -13,7 +13,7 @@ async function connectMongo() {
     if (!u.pathname || u.pathname === "/") u.pathname = "/bhojaa";
     uri = u.toString();
   } catch {}
-  const client = new MongoClient(uri, { dbName: "bhojaa" });
+  const client = new MongoClient(uri, { dbName: "bhojaa", serverSelectionTimeoutMS: 8000 });
   await client.connect();
   db = client.db("bhojaa");
   console.log("Atlas connected", db.databaseName, "v-bhojaa");

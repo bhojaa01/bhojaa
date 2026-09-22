@@ -25,8 +25,26 @@ function logout(req, res) {
 }
 
 function adminLogin(req, res) {
-  try {     json(res, 200, authService.adminLogin(req.body.username, req.body.password)); }
+  try { json(res, 200, authService.adminLogin(req.body.username, req.body.password)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
-module.exports = { sendOtp, login, me, updateMe, logout, adminLogin };
+function adminReady(req, res) {
+  json(res, 200, authService.adminReady());
+}
+
+function adminSetup(req, res) {
+  try { json(res, 200, authService.adminSetup(req.body.username, req.body.password)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function adminCreate(req, res) {
+  try { json(res, 200, authService.adminCreate(req.body.username, req.body.password)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function adminList(req, res) {
+  json(res, 200, { admins: authService.adminList() });
+}
+
+module.exports = { sendOtp, login, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };

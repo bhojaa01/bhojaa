@@ -11,7 +11,8 @@ const db = {
   orders: new Collection("orders", "ORD"),
   reviews: new Collection("reviews", "REV"),
   reports: new Collection("reports", "RPT"),
-  categories: new Collection("categories", "CAT")
+  categories: new Collection("categories", "CAT"),
+  admins: new Collection("admins", "ADM")
 };
 
 db.users.createIndex({ location: "2dsphere" });
@@ -48,7 +49,8 @@ db.loadFromAtlas = async function () {
     db.reviews.loadFromAtlas(),
     db.reports.loadFromAtlas(),
     db.categories.loadFromAtlas(),
-    db.otps.loadFromAtlas()
+    db.otps.loadFromAtlas(),
+    db.admins.loadFromAtlas()
   ]);
 };
 
@@ -70,6 +72,7 @@ db.migrateIds = function () {
   db.reviews.migrateIds();
   db.reports.migrateIds();
   db.otps.migrateIds();
+  db.admins.migrateIds();
 };
 
 module.exports = db;

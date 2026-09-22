@@ -24,6 +24,7 @@
       <input id="password" type="password" placeholder="Password" autocomplete="current-password">
       <p id="msg" class="err"></p>
       <button class="btn btn-block" type="button" id="go">Enter</button>
+      <button class="ghost hide" type="button" id="setup" style="width:100%;margin-top:8px">Create first admin</button>
     </div></div>
     <div id="dash" class="hide dash">
       <nav class="menu" id="menu">
@@ -36,6 +37,7 @@
         <button type="button" class="menu-item" data-section="reports">Reports</button>
         <button type="button" class="menu-item" data-section="categories">Categories</button>
         <button type="button" class="menu-item" data-section="otps">OTPs</button>
+        <button type="button" class="menu-item" data-section="staff">Admins</button>
       </nav>
       <div class="main">
         <section class="panel" data-panel="overview">
@@ -74,6 +76,18 @@
         <section class="panel hide" data-panel="otps">
           <h2>OTPs</h2>
           <div class="table-wrap"><table id="otps"></table></div>
+        </section>
+        <section class="panel hide" data-panel="staff">
+          <h2>Admins</h2>
+          <div class="card" style="margin-bottom:14px"><div class="pad">
+            <label>Username</label>
+            <input id="staff-user">
+            <label>Password</label>
+            <input id="staff-pass" type="password">
+            <p id="staff-msg" class="muted"></p>
+            <button class="btn" type="button" id="staff-add">Add admin</button>
+          </div></div>
+          <div class="table-wrap"><table id="staff"></table></div>
         </section>
       </div>
     </div>

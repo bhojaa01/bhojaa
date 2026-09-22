@@ -7,5 +7,6 @@ const Review = require("./review.model");
 const Report = require("./report.model");
 const Category = require("./category.model");
 const Token = require("./token.model");
+const Admin = require("./admin.model");
 
-module.exports = { User, Otp, Listing, NeedRequest, Order, Review, Report, Category, Token };
+module.exports = { User, Otp, Listing, NeedRequest, Order, Review, Report, Category, Token, Admin };

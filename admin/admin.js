@@ -10,7 +10,8 @@ const LABELS = {
   reviews: "Reviews",
   reports: "Reports",
   categories: "Categories",
-  otps: "OTPs"
+  otps: "OTPs",
+  staff: "Admins"
 };
 function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -64,7 +65,8 @@ async function load() {
     ["reviews", s.reviews],
     ["reports", s.reports],
     ["categories", s.categories],
-    ["otps", s.otps]
+    ["otps", s.otps],
+    ["staff", s.staff]
   ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
   table(document.getElementById("users"), [
     { label: "Id", cell: (r) => esc(r.id) },
@@ -133,6 +135,11 @@ async function load() {
     { label: "Reason", cell: (r) => esc(r.reason) },
     { label: "Status", cell: (r) => badge(r.status) }
   ], data.reports);
+  table(document.getElementById("staff"), [
+    { label: "Id", cell: (r) => esc(r.id) },
+    { label: "Username", cell: (r) => esc(r.username) },
+    { label: "Created", cell: (r) => esc(when(r.createdAt)) }
+  ], data.staff || []);
 }
 
 function showDash(on) {
@@ -142,23 +149,59 @@ function showDash(on) {
   document.getElementById("out").classList.toggle("hide", !on);
 }
 
-document.getElementById("go").onclick = async () => {
+async function enter(path) {
   const msg = document.getElementById("msg");
   msg.textContent = "";
+  const data = await api(path, {
+    body: {
+      username: document.getElementById("username").value,
+      password: document.getElementById("password").value
+    }
+  });
+  localStorage.setItem(KEY, data.token);
+  showDash(true);
+  showSection("overview");
+  await load();
+}
+document.getElementById("go").onclick = async () => {
+  try { await enter("/api/admin/login"); }
+  catch (e) { document.getElementById("msg").textContent = e.message; }
+};
+const setupBtn = document.getElementById("setup");
+if (setupBtn) {
+  setupBtn.onclick = async () => {
+    try { await enter("/api/admin/setup"); }
+    catch (e) { document.getElementById("msg").textContent = e.message; }
+  };
+}
+api("/api/admin/ready").then((d) => {
+  if (d.setup && setupBtn) {
+    setupBtn.classList.remove("hide");
+    document.getElementById("go").classList.add("hide");
+  }
+}).catch(() => {});
+document.getElementById("refresh").onclick = () => load().catch((e) => alert(e.message));
+const staffAdd = document.getElementById("staff-add");
+if (staffAdd) staffAdd.onclick = async () => {
+  const msg = document.getElementById("staff-msg");
+  msg.className = "muted";
   try {
-    const data = await api("/api/admin/login", {
+    await api("/api/admin/staff", {
       body: {
-        username: document.getElementById("username").value,
-        password: document.getElementById("password").value
+        username: document.getElementById("staff-user").value,
+        password: document.getElementById("staff-pass").value
       }
     });
-    localStorage.setItem(KEY, data.token);
-    showDash(true);
-    showSection("overview");
+    document.getElementById("staff-user").value = "";
+    document.getElementById("staff-pass").value = "";
+    msg.className = "ok";
+    msg.textContent = "Admin added.";
     await load();
-  } catch (e) { msg.textContent = e.message; }
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e.message;
+  }
 };
-document.getElementById("refresh").onclick = () => load().catch((e) => alert(e.message));
 document.getElementById("out").onclick = () => {
   localStorage.removeItem(KEY);
   showDash(false);

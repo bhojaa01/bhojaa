@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bhojaa Admin</title>
-  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="logo"><img class="brand" src="/admin/logo.svg" alt=""> Bhojaa Admin</div>
+      <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa Admin</div>
       <div class="row">
         <a class="ghost" id="app-link" href="/">App</a>
         <button class="ghost hide" type="button" id="refresh">Refresh</button>
@@ -24,6 +24,7 @@
       <input id="password" type="password" placeholder="Password" autocomplete="current-password">
       <p id="msg" class="err"></p>
       <button class="btn btn-block" type="button" id="go">Enter</button>
+      <button class="ghost hide" type="button" id="setup" style="width:100%;margin-top:8px">Create first admin</button>
     </div></div>
     <div id="dash" class="hide dash">
       <nav class="menu" id="menu">
@@ -36,6 +37,7 @@
         <button type="button" class="menu-item" data-section="reports">Reports</button>
         <button type="button" class="menu-item" data-section="categories">Categories</button>
         <button type="button" class="menu-item" data-section="otps">OTPs</button>
+        <button type="button" class="menu-item" data-section="staff">Admins</button>
       </nav>
       <div class="main">
         <section class="panel" data-panel="overview">
@@ -75,9 +77,21 @@
           <h2>OTPs</h2>
           <div class="table-wrap"><table id="otps"></table></div>
         </section>
+        <section class="panel hide" data-panel="staff">
+          <h2>Admins</h2>
+          <div class="card" style="margin-bottom:14px"><div class="pad">
+            <label>Username</label>
+            <input id="staff-user">
+            <label>Password</label>
+            <input id="staff-pass" type="password">
+            <p id="staff-msg" class="muted"></p>
+            <button class="btn" type="button" id="staff-add">Add admin</button>
+          </div></div>
+          <div class="table-wrap"><table id="staff"></table></div>
+        </section>
       </div>
     </div>
   </div>
-  <script src="/admin/admin.js"></script>
+  <script src="admin.js"></script>
 </body>
 </html>

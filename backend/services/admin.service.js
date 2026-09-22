@@ -1,5 +1,5 @@
 const db = require("../db");
-const { User, Listing, NeedRequest, Order, Review, Report, Category, Otp, Token } = require("../models");
+const { User, Listing, NeedRequest, Order, Review, Report, Category, Otp, Token, Admin } = require("../models");
 const geo = require("./geo.service");
 
 function data() {
@@ -14,6 +14,7 @@ function data() {
       reports: Report.all().length,
       categories: Category.all().length,
       otps: Otp.all().length,
+      staff: Admin.size(),
       sessions: Token.userCount(),
       openListings: Listing.open().length,
       openNeeds: NeedRequest.open(now).length
@@ -32,6 +33,7 @@ function data() {
     reviews: Review.all().map((r) => ({ ...r, id: r._id })),
     reports: Report.all().map((r) => ({ ...r, id: r._id })),
     categories: Category.all().map((c) => ({ ...c, id: c._id })),
+    staff: Admin.all().map(Admin.dump),
     indexes: {
       users: db.users.indexes,
       listings: db.listings.indexes,

@@ -8,6 +8,12 @@ const app = require("./app");
 const port = process.env.PORT || 4000;
 
 async function start() {
+  http.createServer((req, res) => {
+    app(req, res).catch(() => {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Server error" }));
+    });
+  }).listen(port, "0.0.0.0", () => console.log("API " + port));
   try {
     await connectMongo();
     await db.loadFromAtlas();
@@ -16,12 +22,6 @@ async function start() {
   }
   seed();
   try { db.migrateIds(); } catch (e) { console.log("ids", e.message); }
-  http.createServer((req, res) => {
-    app(req, res).catch(() => {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Server error" }));
-    });
-  }).listen(port, "0.0.0.0", () => console.log("API " + port));
 }
 
 start();

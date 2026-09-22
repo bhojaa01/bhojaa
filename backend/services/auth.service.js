@@ -1,5 +1,5 @@
 const config = require("../config");
-const { User, Otp, Token } = require("../models");
+const { User, Otp, Token, Admin } = require("../models");
 const { phoneOf } = require("../utils/http");
 const kapso = require("./kapso.service");
 
@@ -99,13 +99,29 @@ function logout(token) {
   return { ok: true };
 }
 
-function adminLogin(username, password) {
-  const userOk = String(username || "").trim() === config.adminUser;
-  const passOk = String(password || "") === config.adminPass;
-  if (!userOk || !passOk) {
-    throw Object.assign(new Error("Wrong username or password"), { status: 401 });
-  }
+function adminReady() {
+  return { setup: Admin.size() === 0 };
+}
+
+function adminSetup(username, password) {
+  if (Admin.size() > 0) throw Object.assign(new Error("Admin already set up"), { status: 400 });
+  Admin.create({ username, password });
   return { token: Token.createAdmin() };
 }
 
-module.exports = { sendOtp, login, profile, updateProfile, logout, adminLogin };
+function adminLogin(username, password) {
+  const row = Admin.verify(username, password);
+  if (!row) throw Object.assign(new Error("Wrong username or password"), { status: 401 });
+  return { token: Token.createAdmin() };
+}
+
+function adminCreate(username, password) {
+  const row = Admin.create({ username, password });
+  return Admin.dump(row);
+}
+
+function adminList() {
+  return Admin.all().map(Admin.dump);
+}
+
+module.exports = { sendOtp, login, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };
