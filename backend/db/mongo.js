@@ -3,12 +3,17 @@ const { MongoClient } = require("mongodb");
 let db = null;
 
 async function connectMongo() {
-  const uri = process.env.MONGO_URI;
+  let uri = process.env.MONGO_URI;
   if (!uri) {
     console.log("No MONGO_URI — Atlas off, memory only");
     return null;
   }
-  const client = new MongoClient(uri);
+  try {
+    const u = new URL(uri);
+    if (!u.pathname || u.pathname === "/") u.pathname = "/bhojaa";
+    uri = u.toString();
+  } catch {}
+  const client = new MongoClient(uri, { dbName: "bhojaa" });
   await client.connect();
   db = client.db("bhojaa");
   console.log("Atlas connected", db.databaseName);
