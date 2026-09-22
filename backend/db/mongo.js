@@ -16,7 +16,7 @@ async function connectMongo() {
   const client = new MongoClient(uri, { dbName: "bhojaa" });
   await client.connect();
   db = client.db("bhojaa");
-  console.log("Atlas connected", db.databaseName);
+  console.log("Atlas connected", db.databaseName, "v-bhojaa");
   return db;
 }
 
