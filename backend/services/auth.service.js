@@ -43,7 +43,8 @@ async function login(rawPhone, otp, extra) {
     await User.setLocation(user, lng, lat, extra);
   }
   User.save(user);
-  const token = Token.createUser(user._id);
+  const token = Token.createUser(user);
+  User.setToken(user, token);
   return { token, user: await profile(user) };
 }
 
@@ -94,8 +95,8 @@ async function updateProfile(user, body) {
   return await profile(user);
 }
 
-function logout(token) {
-  Token.remove(token);
+function logout(user) {
+  if (user) User.clearToken(user);
   return { ok: true };
 }
 
@@ -105,14 +106,18 @@ function adminReady() {
 
 function adminSetup(username, password) {
   if (Admin.size() > 0) throw Object.assign(new Error("Admin already set up"), { status: 400 });
-  Admin.create({ username, password });
-  return { token: Token.createAdmin() };
+  const row = Admin.create({ username, password });
+  const token = Token.createAdmin(row);
+  Admin.setToken(row, token);
+  return { token };
 }
 
 function adminLogin(username, password) {
   const row = Admin.verify(username, password);
   if (!row) throw Object.assign(new Error("Wrong username or password"), { status: 401 });
-  return { token: Token.createAdmin() };
+  const token = Token.createAdmin(row);
+  Admin.setToken(row, token);
+  return { token };
 }
 
 function adminCreate(username, password) {

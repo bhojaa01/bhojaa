@@ -35,8 +35,8 @@ function readBody(req) {
 
 function tokenOf(req) {
   const h = req.headers.authorization || "";
-  if (h.startsWith("Bearer ")) return h.slice(7);
-  return new URL(req.url, "http://localhost").searchParams.get("token") || "";
+  if (h.startsWith("Bearer ")) return h.slice(7).trim();
+  return "";
 }
 
 function phoneOf(v) {

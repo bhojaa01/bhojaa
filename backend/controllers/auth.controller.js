@@ -1,5 +1,5 @@
 const authService = require("../services/auth.service");
-const { json, tokenOf } = require("../utils/http");
+const { json } = require("../utils/http");
 
 async function sendOtp(req, res) {
   try { json(res, 200, await authService.sendOtp(req.body.phone)); }
@@ -21,7 +21,7 @@ async function updateMe(req, res) {
 }
 
 function logout(req, res) {
-  json(res, 200, authService.logout(tokenOf(req)));
+  json(res, 200, authService.logout(req.user));
 }
 
 function adminLogin(req, res) {

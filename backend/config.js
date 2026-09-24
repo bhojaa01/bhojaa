@@ -7,6 +7,8 @@ module.exports = {
   appPort: 3000,
   adminPort: 3001,
   otp: process.env.OTP_STATIC || "1234",
+  jwtSecret: process.env.JWT_SECRET || "spareplate-dev-jwt",
+  jwtExpiresSec: Number(process.env.JWT_EXPIRES_SEC) || 30 * 24 * 3600,
   kapsoKey: process.env.KAPSO_API_KEY || "",
   kapsoPhoneId: process.env.KAPSO_PHONE_NUMBER_ID || "",
   kapsoTemplate: process.env.KAPSO_OTP_TEMPLATE || "",

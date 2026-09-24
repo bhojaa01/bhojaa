@@ -88,6 +88,18 @@ function dump(u) {
   };
 }
 
+function setToken(user, token) {
+  user.token = token;
+  db.users.updateById(user._id, { token });
+  return user;
+}
+
+function clearToken(user) {
+  user.token = "";
+  db.users.updateById(user._id, { token: "" });
+  return user;
+}
+
 function all() {
   return db.users.find();
 }
@@ -100,4 +112,4 @@ function save(user) {
   return db.users.save(user);
 }
 
-module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save };
+module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save, setToken, clearToken };

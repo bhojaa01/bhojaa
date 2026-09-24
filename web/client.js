@@ -5,6 +5,16 @@ const API = location.hostname === "localhost" || location.hostname === "127.0.0.
 const SP = {
   apiUrl: API,
   token() { return localStorage.getItem("sp_token") || ""; },
+  claims() {
+    const part = (this.token().split(".")[1] || "").replace(/-/g, "+").replace(/_/g, "/");
+    if (!part) return null;
+    try {
+      const pad = part + "=".repeat((4 - part.length % 4) % 4);
+      const p = JSON.parse(atob(pad));
+      if (p.exp && p.exp * 1000 <= Date.now()) return null;
+      return p;
+    } catch { return null; }
+  },
   user() { try { return JSON.parse(localStorage.getItem("sp_user") || "null"); } catch { return null; } },
   setSession(token, user) {
     localStorage.setItem("sp_token", token);
@@ -263,7 +273,8 @@ function bindWhenPicker(rootId, hiddenId, btnId) {
 }
 
 function requireAuth() {
-  if (!SP.token()) {
+  if (!SP.token() || !SP.claims()) {
+    SP.clearSession();
     location.href = "login.html";
     return false;
   }

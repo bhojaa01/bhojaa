@@ -41,6 +41,22 @@ function verify(username, password) {
   return row;
 }
 
+function findById(id) {
+  return db.admins.findById(id);
+}
+
+function setToken(row, token) {
+  row.token = token;
+  db.admins.updateById(row._id, { token });
+  return row;
+}
+
+function clearToken(row) {
+  row.token = "";
+  db.admins.updateById(row._id, { token: "" });
+  return row;
+}
+
 function dump(a) {
   return { id: a._id, username: a.username, createdAt: a.createdAt };
 }
@@ -53,4 +69,4 @@ function size() {
   return db.admins.size();
 }
 
-module.exports = { create, findByUsername, verify, dump, all, size };
+module.exports = { create, findById, findByUsername, verify, dump, all, size, setToken, clearToken };
