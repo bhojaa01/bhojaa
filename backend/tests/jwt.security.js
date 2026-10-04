@@ -171,4 +171,35 @@ test("user dump does not leak JWT", () => {
   const row = User.findByPhone("9111111112");
   assert.ok(row.token);
   assert.equal(User.dump(row).token, undefined);
+  assert.equal(User.dump(row).tokens, undefined);
+});
+
+test("different roles keep both JWTs", async () => {
+  const a = await loginPhone("9111111130");
+  const seeker = await call("POST", "/api/me", { token: a.token, body: { role: "seeker" } });
+  assert.equal(seeker.status, 200);
+  assert.ok(seeker.data.token);
+  const user = User.findByPhone("9111111130");
+  const pending = Token.createUser(user, { role: "user" });
+  User.setToken(user, pending);
+  const giver = await call("POST", "/api/me", { token: pending, body: { role: "giver" } });
+  assert.equal(giver.status, 200);
+  const row = User.findByPhone("9111111130");
+  assert.equal(row.tokens.seeker, seeker.data.token);
+  assert.equal(row.tokens.giver, giver.data.token);
+  assert.equal((await call("GET", "/api/me", { token: seeker.data.token })).status, 200);
+  assert.equal((await call("GET", "/api/me", { token: giver.data.token })).status, 200);
+});
+
+test("same role login overwrites that JWT only", async () => {
+  const a = await loginPhone("9111111131");
+  const first = await call("POST", "/api/me", { token: a.token, body: { role: "seeker" } });
+  const user = User.findByPhone("9111111131");
+  const pending = Token.createUser(user, { role: "user" });
+  User.setToken(user, pending);
+  const second = await call("POST", "/api/me", { token: pending, body: { role: "seeker" } });
+  assert.notEqual(first.data.token, second.data.token);
+  assert.equal(User.findByPhone("9111111131").tokens.seeker, second.data.token);
+  assert.equal((await call("GET", "/api/me", { token: first.data.token })).status, 401);
+  assert.equal((await call("GET", "/api/me", { token: second.data.token })).status, 200);
 });

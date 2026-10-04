@@ -2,6 +2,10 @@ const config = require("../config");
 const { Listing, Order, Category, User } = require("../models");
 const geo = require("./geo.service");
 
+function catRow(item) {
+  return (item.categoryId && Category.findById(item.categoryId)) || Category.findBySlug(item.category) || null;
+}
+
 function nearHere(item, here) {
   const p = geo.latLng(item.location);
   const owner = User.findById(item.providerId);
@@ -16,14 +20,15 @@ function view(item, who, now, here) {
   const pin = nearHere(item, here);
   const distance = Number(geo.km(here, pin).toFixed(2));
   const maxKm = geo.cap(item, now);
+  const cat = catRow(item);
   return {
     id: item._id,
     name: item.name,
-    category: item.category,
+    category: cat ? cat.name : item.category,
     diet: item.diet,
     servings: item.servings,
     note: item.note,
-    image: item.image,
+    image: item.image || (cat && cat.image) || config.foodImage,
     status: item.status,
     distance,
     maxKm,
@@ -78,7 +83,6 @@ function nearby(who, km, here) {
 async function create(who, body) {
   if (who.role !== "giver") throw Object.assign(new Error("Switch to Give mode first"), { status: 403 });
   const name = String(body.name || "").trim();
-  if (!name) throw Object.assign(new Error("Food name required"), { status: 400 });
   const address = String(body.address || who.address || "").trim();
   if (!address) throw Object.assign(new Error("Pickup address required"), { status: 400 });
   who.address = address;
@@ -88,23 +92,24 @@ async function create(who, body) {
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     try { await User.setLocation(who, lng, lat); } catch {}
   }
-  const slug = String(body.category || "meals").toLowerCase();
-  const cat = Category.findBySlug(slug);
+  const slug = String(body.category || name).trim().toLowerCase();
+  const cat = Category.findBySlug(slug) || Category.findById(body.category) || Category.all().find((c) => String(c.name).toLowerCase() === name.toLowerCase());
+  if (!cat) throw Object.assign(new Error("Pick a food category"), { status: 400 });
   const here = User.coords(who);
   const dietRaw = String(body.diet || "veg").toLowerCase().replace(/[^a-z]/g, "");
   const item = Listing.create({
     providerId: who._id,
-    name,
-    categoryId: cat ? cat._id : null,
-    category: slug,
-    diet: dietRaw === "nonveg" || dietRaw === "egg" ? "nonveg" : "veg",
+    name: cat.name,
+    categoryId: cat._id,
+    category: cat.slug,
+    diet: dietRaw === "nonveg" || dietRaw === "egg" ? "nonveg" : dietRaw === "all" ? "all" : "veg",
     servings: Math.max(1, Number(body.servings) || 1),
     note: String(body.note || "").trim(),
     availableUntil: geo.untilFrom(body, 90),
     lat: here.lat,
     lng: here.lng,
     address,
-    image: config.foodImage,
+    image: cat.image || config.foodImage,
     status: "open"
   });
   return { ok: true, id: item._id };

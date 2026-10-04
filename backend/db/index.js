@@ -12,6 +12,7 @@ const db = {
   reviews: new Collection("reviews", "REV"),
   reports: new Collection("reports", "RPT"),
   categories: new Collection("categories", "CAT"),
+  foods: new Collection("foods", "FD"),
   admins: new Collection("admins", "ADM")
 };
 
@@ -49,6 +50,7 @@ db.loadFromAtlas = async function () {
     db.reviews.loadFromAtlas(),
     db.reports.loadFromAtlas(),
     db.categories.loadFromAtlas(),
+    db.foods.loadFromAtlas(),
     db.otps.loadFromAtlas(),
     db.admins.loadFromAtlas()
   ]);
@@ -59,6 +61,7 @@ db.migrateIds = function () {
   const cats = db.categories.migrateIds();
   remap(db.listings, ["providerId"], users);
   remap(db.listings, ["categoryId"], cats);
+  remap(db.foods, ["categoryId"], cats);
   remap(db.need_requests, ["seekerId"], users);
   remap(db.orders, ["seekerId", "providerId"], users);
   remap(db.reviews, ["fromUserId", "toUserId"], users);
@@ -71,6 +74,7 @@ db.migrateIds = function () {
   remap(db.reviews, ["orderId"], orders);
   db.reviews.migrateIds();
   db.reports.migrateIds();
+  db.foods.migrateIds();
   db.otps.migrateIds();
   db.admins.migrateIds();
 };

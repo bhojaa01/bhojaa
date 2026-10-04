@@ -3,10 +3,12 @@ const { json, tokenOf } = require("../utils/http");
 
 function requireAuth(req, res, next) {
   const t = tokenOf(req);
-  const id = Token.userIdOf(t);
+  const p = Token.claims(t);
+  const id = p && p.kind === "user" ? p.sub : null;
   const user = id ? User.findById(id) : null;
-  if (!user || !Token.same(user.token, t)) return json(res, 401, { error: "Login required" });
-  req.user = user;
+  if (!user || !User.hasToken(user, t)) return json(res, 401, { error: "Login required" });
+  const role = p.role === "seeker" || p.role === "giver" ? p.role : user.role;
+  req.user = Object.assign({}, user, { role });
   next();
 }
 

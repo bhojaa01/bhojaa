@@ -88,9 +88,22 @@ function dump(u) {
   };
 }
 
+function tokensOf(user) {
+  const t = user && user.tokens && typeof user.tokens === "object" ? user.tokens : {};
+  return { seeker: t.seeker || "", giver: t.giver || "" };
+}
+
 function setToken(user, token) {
   user.token = token;
   db.users.updateById(user._id, { token });
+  return user;
+}
+
+function setRoleToken(user, role, token) {
+  const tokens = tokensOf(user);
+  if (role === "seeker" || role === "giver") tokens[role] = token || "";
+  user.tokens = tokens;
+  db.users.updateById(user._id, { tokens });
   return user;
 }
 
@@ -98,6 +111,20 @@ function clearToken(user) {
   user.token = "";
   db.users.updateById(user._id, { token: "" });
   return user;
+}
+
+function clearRoleToken(user, role) {
+  return setRoleToken(user, role, "");
+}
+
+function hasToken(user, t) {
+  const Token = require("./token.model");
+  const p = Token.claims(t);
+  if (!p) return false;
+  if (p.role === "seeker" || p.role === "giver") {
+    if (Token.same(tokensOf(user)[p.role], t)) return true;
+  }
+  return Token.same(user.token, t);
 }
 
 function all() {
@@ -112,4 +139,4 @@ function save(user) {
   return db.users.save(user);
 }
 
-module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save, setToken, clearToken };
+module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save, setToken, setRoleToken, clearToken, clearRoleToken, hasToken, tokensOf };

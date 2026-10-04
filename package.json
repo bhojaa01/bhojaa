@@ -11,6 +11,7 @@
     "app": "node web/server.js",
     "admin": "node admin/server.js",
     "start": "node backend/server.js",
+    "seed:catalog": "node backend/scripts/seed-catalog.js",
     "test": "node --test backend/tests/*.js"
   },
   "dependencies": {

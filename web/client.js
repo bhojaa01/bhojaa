@@ -17,10 +17,12 @@ const SP = {
   },
   user() { try { return JSON.parse(localStorage.getItem("sp_user") || "null"); } catch { return null; } },
   setSession(token, user) {
-    localStorage.setItem("sp_token", token);
+    if (token) localStorage.setItem("sp_token", token);
     let place = null;
     try { place = JSON.parse(localStorage.getItem("sp_place") || "null"); } catch {}
-    localStorage.setItem("sp_user", JSON.stringify(this.mergePlace(user, place)));
+    const u = { ...(user || {}) };
+    delete u.token;
+    localStorage.setItem("sp_user", JSON.stringify(this.mergePlace(u, place)));
   },
   clearSession() {
     localStorage.removeItem("sp_token");
@@ -326,7 +328,7 @@ function requireMode(need) {
 
 async function pickRole(next) {
   const user = await SP.api("/api/me", { body: { role: next } });
-  SP.setSession(SP.token(), user);
+  SP.setSession(user.token || SP.token(), user);
   location.href = next === "giver" ? "provider.html" : "app.html";
 }
 
@@ -449,7 +451,7 @@ async function pageNearby() {
       const q = pos ? "&lat=" + pos.lat + "&lng=" + pos.lng : "";
       const data = await SP.api("/api/listings?km=" + km + q);
       let rows = (data.listings || []).filter((l) => l.minLeft > 0 && Number(l.distance) <= km);
-      if (diet !== "all") rows = rows.filter((l) => (l.diet || "veg") === diet);
+      if (diet !== "all") rows = rows.filter((l) => (l.diet || "veg") === diet || l.diet === "all");
       count.textContent = rows.length ? rows.length + " meal" + (rows.length === 1 ? "" : "s") + " within " + km + " km" : "";
       if (!rows.length) {
         const n = data.nearest;
@@ -608,6 +610,37 @@ function nearbyNeedCard(n) {
   </div></div>`;
 }
 
+let giveCatalog = [];
+
+function dietKey() {
+  return String((document.getElementById("diet") || {}).value || "veg").toLowerCase().replace(/[^a-z]/g, "") || "veg";
+}
+
+function catsForDiet() {
+  const diet = dietKey();
+  return giveCatalog.filter((c) => {
+    const d = String(c.diet || "all").toLowerCase();
+    if (diet === "all") return true;
+    return d === "all" || d === diet;
+  });
+}
+
+function fillCategories(selected) {
+  const catSel = document.getElementById("category");
+  if (!catSel) return;
+  const rows = catsForDiet();
+  catSel.innerHTML = ['<option value="">Select category</option>']
+    .concat(rows.map((c) => `<option value="${c.slug}">${c.name}</option>`)).join("");
+  if (selected && rows.some((c) => c.slug === selected)) catSel.value = selected;
+}
+
+function applyNeedFood(what) {
+  const q = String(what || "").trim().toLowerCase();
+  if (!q) return;
+  const hit = giveCatalog.find((c) => c.name.toLowerCase() === q || c.slug === q);
+  if (hit) fillCategories(hit.slug);
+}
+
 function openGiveForm(need) {
   const box = document.getElementById("give-box");
   if (!box) {
@@ -615,10 +648,9 @@ function openGiveForm(need) {
     return;
   }
   if (need) {
-    const name = document.getElementById("name");
     const servings = document.getElementById("servings");
-    if (name) name.value = need.what || "";
     if (servings) servings.value = need.servings || 1;
+    applyNeedFood(need.what);
   }
   box.classList.remove("hide");
   const openBtn = document.getElementById("open-give");
@@ -683,6 +715,13 @@ async function pageGive() {
   }
   const me = SP.user() || {};
   if (me.address) document.getElementById("address").value = me.address;
+  try {
+    const data = await SP.api("/api/categories");
+    giveCatalog = (data.categories || []).filter((c) => c.image);
+  } catch { giveCatalog = []; }
+  fillCategories();
+  const dietSel = document.getElementById("diet");
+  if (dietSel) dietSel.onchange = () => fillCategories();
   bindWhenPicker("until-picker", "until", "until-btn");
   const giveBox = document.getElementById("give-box");
   const openGive = document.getElementById("open-give");
@@ -696,9 +735,11 @@ async function pageGive() {
     msg.className = "ok";
     try {
       const pos = (await SP.locate()) || {};
+      const catSel = document.getElementById("category");
+      const cat = catsForDiet().find((c) => c.slug === catSel.value) || giveCatalog.find((c) => c.slug === catSel.value);
       await SP.api("/api/listings", { body: {
-        name: document.getElementById("name").value,
-        category: document.getElementById("category").value,
+        name: cat ? cat.name : catSel.value,
+        category: catSel.value,
         diet: document.getElementById("diet").value,
         servings: document.getElementById("servings").value,
         untilAt: document.getElementById("until").value,

@@ -47,9 +47,14 @@ function view(o, who) {
 
 function mine(who) {
   const now = Date.now();
+  const giver = who.role === "giver";
+  const id = String(who._id);
   return {
-    orders: Order.findForUser(who._id).map((o) => view(o, who)),
-    listings: Listing.findByProvider(who._id).map((l) => {
+    role: who.role,
+    orders: Order.findForUser(who._id)
+      .filter((o) => giver ? String(o.providerId) === id : String(o.seekerId) === id)
+      .map((o) => view(o, who)),
+    listings: (giver ? Listing.findByProvider(who._id) : []).map((l) => {
       if (l.status === "open" && l.availableUntil <= now) {
         l.status = Order.collectedByListing(l._id) ? "done" : "expired";
       }
@@ -60,7 +65,7 @@ function mine(who) {
       row.history = Order.findByListing(l._id).map((o) => view(o, who));
       return row;
     }),
-    needs: NeedRequest.findBySeeker(who._id).map((n) => {
+    needs: (giver ? [] : NeedRequest.findBySeeker(who._id)).map((n) => {
       const row = needService.view(n, who, now);
       const hist = Order.findByNeed(n._id).map((o) => view(o, who));
       const hit = hist.find((o) => o.status === "accepted" || o.status === "collected") || hist[0];

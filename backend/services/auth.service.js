@@ -43,7 +43,7 @@ async function login(rawPhone, otp, extra) {
     await User.setLocation(user, lng, lat, extra);
   }
   User.save(user);
-  const token = Token.createUser(user);
+  const token = Token.createUser(user, { role: "user" });
   User.setToken(user, token);
   return { token, user: await profile(user) };
 }
@@ -59,6 +59,7 @@ async function profile(user) {
     state: user.state || "",
     country: user.country || "",
     role: user.role,
+    roles: Array.isArray(user.roles) ? user.roles : [],
     lat: p.lat,
     lng: p.lng
   };
@@ -81,10 +82,14 @@ async function updateProfile(user, body) {
     if (!name) throw Object.assign(new Error("Name required"), { status: 400 });
     user.profile.name = name;
   }
+  let token;
   if (body.role === "seeker" || body.role === "giver") {
     user.role = body.role;
     if (!Array.isArray(user.roles)) user.roles = [];
     if (!user.roles.includes(body.role)) user.roles.push(body.role);
+    token = Token.createUser(user, { role: body.role });
+    User.setRoleToken(user, body.role, token);
+    User.clearToken(user);
   }
   const lat = Number(body.lat);
   const lng = Number(body.lng);
@@ -92,11 +97,16 @@ async function updateProfile(user, body) {
     await User.setLocation(user, lng, lat, body);
   }
   User.save(user);
-  return await profile(user);
+  const out = await profile(user);
+  if (token) out.token = token;
+  return out;
 }
 
-function logout(user) {
-  if (user) User.clearToken(user);
+function logout(user, token) {
+  if (!user) return { ok: true };
+  const p = Token.claims(token);
+  if (p && (p.role === "seeker" || p.role === "giver")) User.clearRoleToken(user, p.role);
+  if (Token.same(user.token, token)) User.clearToken(user);
   return { ok: true };
 }
 

@@ -3,7 +3,9 @@ const db = require("../db");
 function create(data) {
   return db.categories.insertOne({
     name: data.name,
-    slug: data.slug,
+    slug: String(data.slug || "").toLowerCase(),
+    image: data.image || "",
+    diet: data.diet || "all",
     createdAt: new Date()
   });
 }
@@ -20,4 +22,12 @@ function all() {
   return db.categories.find();
 }
 
-module.exports = { create, findBySlug, findById, all };
+function save(row) {
+  return db.categories.save(row);
+}
+
+function remove(id) {
+  return db.categories.deleteById(id);
+}
+
+module.exports = { create, findBySlug, findById, all, save, remove };

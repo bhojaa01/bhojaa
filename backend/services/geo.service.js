@@ -99,7 +99,7 @@ function cap(item, now) {
   const m = (until - n) / 60000;
   if (m <= 0) return 0;
   let k = m <= 60 ? 1 : m <= 180 ? 2 : 5;
-  if (item.category === "tiffin" || item.category === "meals") k = Math.min(k, 2);
+  if (item.category === "tiffin" || item.category === "meals" || item.category === "rice-meals") k = Math.min(k, 2);
   return k;
 }
 

@@ -81,12 +81,12 @@ function same(a, b) {
 
 function userCount() {
   const User = require("./user.model");
-  return User.all().filter((u) => u.token).length;
+  return User.all().filter((u) => u.token || (u.tokens && (u.tokens.seeker || u.tokens.giver))).length;
 }
 
 function userIds() {
   const User = require("./user.model");
-  return User.all().filter((u) => u.token).map((u) => ({ userId: u._id }));
+  return User.all().filter((u) => u.token || (u.tokens && (u.tokens.seeker || u.tokens.giver))).map((u) => ({ userId: u._id }));
 }
 
 function remove() {}

@@ -10,5 +10,7 @@ router.post("/api/admin/setup", auth.adminSetup);
 router.get("/api/admin/staff", requireAdmin, auth.adminList);
 router.post("/api/admin/staff", requireAdmin, auth.adminCreate);
 router.get("/api/admin/data", requireAdmin, admin.data);
+router.post("/api/admin/categories", requireAdmin, admin.addCategory);
+router.post("/api/admin/categories/:id/delete", requireAdmin, admin.removeCategory);
 
 module.exports = router;
