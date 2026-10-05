@@ -70,8 +70,29 @@
           <div class="table-wrap"><table id="reports"></table></div>
         </section>
         <section class="panel hide" data-panel="categories">
-          <h2>Categories</h2>
+          <div class="panel-head">
+            <h2>Categories</h2>
+            <button class="btn" type="button" id="cat-open">Add category</button>
+          </div>
+          <div class="card hide" id="cat-form" style="margin-bottom:14px"><div class="pad">
+            <label>Name</label>
+            <input id="cat-name" placeholder="Rice & Meals">
+            <label>Diet</label>
+            <select id="cat-diet">
+              <option value="all">All</option>
+              <option value="veg">Veg</option>
+              <option value="nonveg">Non-veg</option>
+            </select>
+            <label>Image URL</label>
+            <input id="cat-image" placeholder="https://...">
+            <p id="cat-msg" class="muted"></p>
+            <p class="row" style="margin-top:8px">
+              <button class="btn" type="button" id="cat-save">Save</button>
+              <button class="ghost" type="button" id="cat-cancel">Cancel</button>
+            </p>
+          </div></div>
           <div class="table-wrap"><table id="categories"></table></div>
+          <div class="pager" id="cat-pager"></div>
         </section>
         <section class="panel hide" data-panel="otps">
           <h2>OTPs</h2>

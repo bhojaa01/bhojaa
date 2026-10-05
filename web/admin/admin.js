@@ -49,6 +49,68 @@ function table(el, cols, rows) {
     "</tbody>";
 }
 
+const CAT_PAGE = 8;
+let catRows = [];
+let catPage = 1;
+
+function slugOf(name) {
+  return String(name || "").toLowerCase().trim().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function catPages() {
+  return Math.max(1, Math.ceil(catRows.length / CAT_PAGE));
+}
+
+function paintCats() {
+  const el = document.getElementById("categories");
+  if (!el) return;
+  const pages = catPages();
+  if (catPage > pages) catPage = pages;
+  if (catPage < 1) catPage = 1;
+  const start = (catPage - 1) * CAT_PAGE;
+  const rows = catRows.slice(start, start + CAT_PAGE);
+  table(el, [
+    { label: "Image", cell: (r) => r.image ? '<img class="thumb" src="' + esc(r.image) + '" alt="">' : "" },
+    { label: "Id", cell: (r) => esc(r.id) },
+    { label: "Name", cell: (r) => esc(r.name) },
+    { label: "Diet", cell: (r) => esc(r.diet || "all") },
+    { label: "Slug", cell: (r) => esc(r.slug) },
+    { label: "", cell: (r) => '<button type="button" class="ghost" data-del-cat="' + esc(r.id) + '">Delete</button>' }
+  ], rows);
+  const pager = document.getElementById("cat-pager");
+  if (!pager) return;
+  pager.innerHTML = catRows.length
+    ? '<button type="button" class="ghost" id="cat-prev"' + (catPage <= 1 ? " disabled" : "") + ">Prev</button>"
+      + "<span>Page " + catPage + " of " + pages + " · " + catRows.length + "</span>"
+      + '<button type="button" class="ghost" id="cat-next"' + (catPage >= pages ? " disabled" : "") + ">Next</button>"
+    : "";
+  const prev = document.getElementById("cat-prev");
+  const next = document.getElementById("cat-next");
+  if (prev) prev.onclick = () => { if (catPage > 1) { catPage -= 1; paintCats(); } };
+  if (next) next.onclick = () => { if (catPage < pages) { catPage += 1; paintCats(); } };
+}
+
+function showCatForm(on) {
+  const form = document.getElementById("cat-form");
+  const open = document.getElementById("cat-open");
+  if (form) form.classList.toggle("hide", !on);
+  if (open) open.classList.toggle("hide", on);
+  if (on) {
+    const msg = document.getElementById("cat-msg");
+    if (msg) { msg.className = "muted"; msg.textContent = ""; }
+    ["cat-name", "cat-image"].forEach((id) => {
+      const n = document.getElementById(id);
+      if (n) n.classList.remove("field-err");
+    });
+  }
+}
+
+function catDup(name) {
+  const key = String(name || "").trim().toLowerCase();
+  const slug = slugOf(name);
+  return catRows.some((c) => String(c.name || "").trim().toLowerCase() === key || String(c.slug) === slug);
+}
+
 function showSection(name) {
   document.querySelectorAll(".menu-item").forEach((b) => b.classList.toggle("on", b.dataset.section === name));
   document.querySelectorAll("[data-panel]").forEach((p) => p.classList.toggle("hide", p.dataset.panel !== name));
@@ -84,11 +146,9 @@ async function load() {
     { label: "Phone", cell: (r) => esc(r.phone) },
     { label: "Expires", cell: (r) => esc(when(r.expiresAt)) }
   ], data.otps);
-  table(document.getElementById("categories"), [
-    { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Name", cell: (r) => esc(r.name) },
-    { label: "Slug", cell: (r) => esc(r.slug) }
-  ], data.categories);
+  catRows = data.categories || [];
+  if (catPage > catPages()) catPage = catPages();
+  paintCats();
   table(document.getElementById("listings"), [
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Name", cell: (r) => esc(r.name) },
@@ -181,6 +241,71 @@ api("/api/admin/ready").then((d) => {
   }
 }).catch(() => {});
 document.getElementById("refresh").onclick = () => load().catch((e) => alert(e.message));
+const catOpen = document.getElementById("cat-open");
+if (catOpen) catOpen.onclick = () => showCatForm(true);
+const catCancel = document.getElementById("cat-cancel");
+if (catCancel) catCancel.onclick = () => {
+  document.getElementById("cat-name").value = "";
+  document.getElementById("cat-image").value = "";
+  showCatForm(false);
+};
+const catSave = document.getElementById("cat-save");
+if (catSave) catSave.onclick = async () => {
+  const msg = document.getElementById("cat-msg");
+  const nameEl = document.getElementById("cat-name");
+  const imageEl = document.getElementById("cat-image");
+  const name = nameEl.value.trim();
+  const image = imageEl.value.trim();
+  msg.className = "muted";
+  msg.textContent = "";
+  nameEl.classList.remove("field-err");
+  imageEl.classList.remove("field-err");
+  if (name.length < 2) {
+    nameEl.classList.add("field-err");
+    msg.className = "err";
+    msg.textContent = "Name must be at least 2 characters.";
+    return;
+  }
+  if (catDup(name)) {
+    nameEl.classList.add("field-err");
+    msg.className = "err";
+    msg.textContent = "Category already exists.";
+    return;
+  }
+  if (image && !/^https?:\/\/\S+/i.test(image)) {
+    imageEl.classList.add("field-err");
+    msg.className = "err";
+    msg.textContent = "Enter a valid image URL.";
+    return;
+  }
+  try {
+    await api("/api/admin/categories", {
+      body: {
+        name,
+        diet: document.getElementById("cat-diet").value,
+        image
+      }
+    });
+    nameEl.value = "";
+    imageEl.value = "";
+    showCatForm(false);
+    await load();
+    catPage = catPages();
+    paintCats();
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e.message;
+  }
+};
+const catsTable = document.getElementById("categories");
+if (catsTable) catsTable.onclick = async (e) => {
+  const b = e.target.closest("[data-del-cat]");
+  if (!b) return;
+  try {
+    await api("/api/admin/categories/" + b.dataset.delCat + "/delete", { body: {} });
+    await load();
+  } catch (err) { alert(err.message); }
+};
 const staffAdd = document.getElementById("staff-add");
 if (staffAdd) staffAdd.onclick = async () => {
   const msg = document.getElementById("staff-msg");
