@@ -13,6 +13,7 @@ const db = {
   reports: new Collection("reports", "RPT"),
   categories: new Collection("categories", "CAT"),
   foods: new Collection("foods", "FD"),
+  settings: new Collection("settings", "SET"),
   admins: new Collection("admins", "ADM")
 };
 
@@ -51,6 +52,7 @@ db.loadFromAtlas = async function () {
     db.reports.loadFromAtlas(),
     db.categories.loadFromAtlas(),
     db.foods.loadFromAtlas(),
+    db.settings.loadFromAtlas(),
     db.otps.loadFromAtlas(),
     db.admins.loadFromAtlas()
   ]);

@@ -9,6 +9,7 @@ const LABELS = {
   orders: "Orders",
   reviews: "Reviews",
   reports: "Reports",
+  home: "Home page",
   categories: "Categories",
   otps: "OTPs",
   staff: "Admins"
@@ -90,6 +91,32 @@ function paintCats() {
   if (next) next.onclick = () => { if (catPage < pages) { catPage += 1; paintCats(); } };
 }
 
+function bannerSrc(v) {
+  const s = String(v || "hero.jpg").trim() || "hero.jpg";
+  if (/^https?:\/\//i.test(s)) return s;
+  return (APP.replace(/\/$/, "") || "") + "/" + s.replace(/^\//, "");
+}
+
+function fillHomeForm(d) {
+  if (!d) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+  set("home-headline", d.headline);
+  set("home-tagline", d.tagline);
+  set("home-banner", d.banner);
+  set("home-about-title", d.aboutTitle);
+  set("home-about-text", d.aboutText);
+  (d.points || []).forEach((p, i) => {
+    set("home-p" + i + "-title", p.title);
+    set("home-p" + i + "-text", p.text);
+  });
+  const prev = document.getElementById("home-preview");
+  if (prev) prev.src = bannerSrc(d.banner);
+}
+
+async function fillHome() {
+  try { fillHomeForm(await api("/api/home")); } catch {}
+}
+
 function showCatForm(on) {
   const form = document.getElementById("cat-form");
   const open = document.getElementById("cat-open");
@@ -146,6 +173,7 @@ async function load() {
     { label: "Phone", cell: (r) => esc(r.phone) },
     { label: "Expires", cell: (r) => esc(when(r.expiresAt)) }
   ], data.otps);
+  await fillHome();
   catRows = data.categories || [];
   if (catPage > catPages()) catPage = catPages();
   paintCats();
@@ -241,6 +269,48 @@ api("/api/admin/ready").then((d) => {
   }
 }).catch(() => {});
 document.getElementById("refresh").onclick = () => load().catch((e) => alert(e.message));
+const homeBanner = document.getElementById("home-banner");
+if (homeBanner) homeBanner.oninput = () => {
+  const prev = document.getElementById("home-preview");
+  if (prev) prev.src = bannerSrc(homeBanner.value);
+};
+const homeSave = document.getElementById("home-save");
+if (homeSave) homeSave.onclick = async () => {
+  const msg = document.getElementById("home-msg");
+  msg.className = "muted";
+  const banner = document.getElementById("home-banner").value.trim();
+  if (banner && banner !== "hero.jpg" && !/^https?:\/\/\S+/i.test(banner)) {
+    msg.className = "err";
+    msg.textContent = "Enter a valid banner image URL.";
+    return;
+  }
+  const headline = document.getElementById("home-headline").value.trim();
+  if (headline.length < 2) {
+    msg.className = "err";
+    msg.textContent = "Headline required.";
+    return;
+  }
+  try {
+    await api("/api/admin/home", {
+      body: {
+        headline,
+        tagline: document.getElementById("home-tagline").value,
+        banner,
+        aboutTitle: document.getElementById("home-about-title").value,
+        aboutText: document.getElementById("home-about-text").value,
+        points: [0, 1, 2].map((i) => ({
+          title: document.getElementById("home-p" + i + "-title").value,
+          text: document.getElementById("home-p" + i + "-text").value
+        }))
+      }
+    });
+    msg.className = "ok";
+    msg.textContent = "Home page saved.";
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e.message;
+  }
+};
 const catOpen = document.getElementById("cat-open");
 if (catOpen) catOpen.onclick = () => showCatForm(true);
 const catCancel = document.getElementById("cat-cancel");

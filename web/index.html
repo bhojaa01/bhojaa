@@ -15,29 +15,48 @@
     </div>
     <section class="hero">
       <div>
-        <h1>Extra food should feed someone nearby.</h1>
-        <p class="muted">Share leftover tiffin, fruit or a meal. Pickup only. Free.</p>
+        <h1 id="home-headline">Extra food should feed someone nearby.</h1>
+        <p class="muted" id="home-tagline">Share leftover tiffin, fruit or a meal. Pickup only. Free.</p>
       </div>
-      <div class="card"><img src="hero.jpg" width="800" height="533" alt="" fetchpriority="high" decoding="async"></div>
+      <div class="card"><img id="home-banner" src="hero.jpg" width="800" height="533" alt="" fetchpriority="high" decoding="async"></div>
     </section>
     <section class="banner">
-      <h2>What Bhojaa does</h2>
-      <p>Bhojaa connects neighbors. If you have extra food, post it. If you need a meal, ask nearby. The giver accepts, then you collect from their home. No delivery. No payment. Address stays private until they accept.</p>
+      <h2 id="home-about-title">What Bhojaa does</h2>
+      <p id="home-about-text">Bhojaa connects neighbors. If you have extra food, post it. If you need a meal, ask nearby. The giver accepts, then you collect from their home. No delivery. No payment. Address stays private until they accept.</p>
     </section>
     <div class="grid home-points">
       <div class="card"><div class="pad">
-        <h3>Need food</h3>
-        <p class="muted">See leftover meals within a few kilometers, or post what you need. Nearby givers can accept.</p>
+        <h3 id="home-p0-title">Need food</h3>
+        <p class="muted" id="home-p0-text">See leftover meals within a few kilometers, or post what you need. Nearby givers can accept.</p>
       </div></div>
       <div class="card"><div class="pad">
-        <h3>Give extra food</h3>
-        <p class="muted">Publish a dish, servings, and until when. A neighbor requests. They collect. Keep it free.</p>
+        <h3 id="home-p1-title">Give extra food</h3>
+        <p class="muted" id="home-p1-text">Publish a dish, servings, and until when. A neighbor requests. They collect. Keep it free.</p>
       </div></div>
       <div class="card"><div class="pad">
-        <h3>Safe pickup</h3>
-        <p class="muted">House number is shared only after you accept. Login with your phone to start.</p>
+        <h3 id="home-p2-title">Safe pickup</h3>
+        <p class="muted" id="home-p2-text">House number is shared only after you accept. Login with your phone to start.</p>
       </div></div>
     </div>
   </div>
+  <script>
+    const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+      ? "http://localhost:4000"
+      : "https://bhojaa-production.up.railway.app";
+    fetch(API + "/api/home").then((r) => r.json()).then((d) => {
+      if (!d || !d.headline) return;
+      const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
+      set("home-headline", d.headline);
+      set("home-tagline", d.tagline);
+      set("home-about-title", d.aboutTitle);
+      set("home-about-text", d.aboutText);
+      (d.points || []).forEach((p, i) => {
+        set("home-p" + i + "-title", p.title);
+        set("home-p" + i + "-text", p.text);
+      });
+      const img = document.getElementById("home-banner");
+      if (img && d.banner) img.src = d.banner;
+    }).catch(() => {});
+  </script>
 </body>
 </html>

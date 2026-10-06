@@ -29,6 +29,7 @@
     <div id="dash" class="hide dash">
       <nav class="menu" id="menu">
         <button type="button" class="menu-item on" data-section="overview">Overview</button>
+        <button type="button" class="menu-item" data-section="home">Home page</button>
         <button type="button" class="menu-item" data-section="users">Users</button>
         <button type="button" class="menu-item" data-section="listings">Listings</button>
         <button type="button" class="menu-item" data-section="need_requests">Need requests</button>
@@ -44,6 +45,37 @@
           <h2>Overview</h2>
           <p class="muted intro">Live counts. Tap a card to open that list.</p>
           <div class="stats" id="stats"></div>
+        </section>
+        <section class="panel hide" data-panel="home">
+          <h2>Home page</h2>
+          <p class="muted intro">Banner and text on bhojaa.vercel.app. Leave a field blank to keep the default.</p>
+          <div class="card"><div class="pad">
+            <label>Headline</label>
+            <input id="home-headline">
+            <label>Tagline</label>
+            <input id="home-tagline">
+            <label>Banner image URL</label>
+            <input id="home-banner" placeholder="https://... or hero.jpg">
+            <img class="thumb home-preview" id="home-preview" alt="">
+            <label>About title</label>
+            <input id="home-about-title">
+            <label>About text</label>
+            <textarea id="home-about-text" rows="4"></textarea>
+            <label>Card 1 title</label>
+            <input id="home-p0-title">
+            <label>Card 1 text</label>
+            <textarea id="home-p0-text" rows="3"></textarea>
+            <label>Card 2 title</label>
+            <input id="home-p1-title">
+            <label>Card 2 text</label>
+            <textarea id="home-p1-text" rows="3"></textarea>
+            <label>Card 3 title</label>
+            <input id="home-p2-title">
+            <label>Card 3 text</label>
+            <textarea id="home-p2-text" rows="3"></textarea>
+            <p id="home-msg" class="muted"></p>
+            <button class="btn" type="button" id="home-save">Save home page</button>
+          </div></div>
         </section>
         <section class="panel hide" data-panel="users">
           <h2>Users</h2>
