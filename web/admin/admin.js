@@ -11,6 +11,7 @@ const LABELS = {
   reports: "Reports",
   home: "Home page",
   categories: "Categories",
+  partners: "Partners",
   otps: "OTPs",
   staff: "Admins"
 };
@@ -27,7 +28,7 @@ function geo(r) {
 }
 function badge(status) {
   const s = String(status || "");
-  const klass = s === "expired" || s === "declined" ? "bad" : s === "requested" || s === "waiting" ? "warn" : "";
+  const klass = s === "expired" || s === "declined" || s === "off" || s === "no" ? "bad" : s === "requested" || s === "waiting" || s === "pending" ? "warn" : "";
   return '<span class="badge ' + klass + '">' + esc(s) + "</span>";
 }
 function token() { return localStorage.getItem(KEY) || ""; }
@@ -53,6 +54,42 @@ function table(el, cols, rows) {
 const CAT_PAGE = 8;
 let catRows = [];
 let catPage = 1;
+const OTP_PAGE = 10;
+let otpRows = [];
+let otpPage = 1;
+
+function otpPages() {
+  return Math.max(1, Math.ceil(otpRows.length / OTP_PAGE));
+}
+
+function paintOtps() {
+  const el = document.getElementById("otps");
+  if (!el) return;
+  const pages = otpPages();
+  if (otpPage > pages) otpPage = pages;
+  if (otpPage < 1) otpPage = 1;
+  const start = (otpPage - 1) * OTP_PAGE;
+  const rows = otpRows.slice(start, start + OTP_PAGE);
+  table(el, [
+    { label: "Id", cell: (r) => esc(r.id) },
+    { label: "Phone", cell: (r) => esc(r.phone) },
+    { label: "Used", cell: (r) => badge(r.used ? "used" : "no") },
+    { label: "Status", cell: (r) => badge(r.status) },
+    { label: "Sent", cell: (r) => esc(when(r.lastSentAt)) },
+    { label: "Expires", cell: (r) => esc(when(r.expiresAt)) }
+  ], rows);
+  const pager = document.getElementById("otp-pager");
+  if (!pager) return;
+  pager.innerHTML = otpRows.length
+    ? '<button type="button" class="ghost" id="otp-prev"' + (otpPage <= 1 ? " disabled" : "") + ">Prev</button>"
+      + "<span>Page " + otpPage + " of " + pages + " · " + otpRows.length + "</span>"
+      + '<button type="button" class="ghost" id="otp-next"' + (otpPage >= pages ? " disabled" : "") + ">Next</button>"
+    : "";
+  const prev = document.getElementById("otp-prev");
+  const next = document.getElementById("otp-next");
+  if (prev) prev.onclick = () => { if (otpPage > 1) { otpPage -= 1; paintOtps(); } };
+  if (next) next.onclick = () => { if (otpPage < pages) { otpPage += 1; paintOtps(); } };
+}
 
 function slugOf(name) {
   return String(name || "").toLowerCase().trim().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -154,6 +191,7 @@ async function load() {
     ["reviews", s.reviews],
     ["reports", s.reports],
     ["categories", s.categories],
+    ["partners", s.partners],
     ["otps", s.otps],
     ["staff", s.staff]
   ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
@@ -168,11 +206,9 @@ async function load() {
     { label: "Country", cell: (r) => esc(r.country) },
     { label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
   ], data.users);
-  table(document.getElementById("otps"), [
-    { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Phone", cell: (r) => esc(r.phone) },
-    { label: "Expires", cell: (r) => esc(when(r.expiresAt)) }
-  ], data.otps);
+  otpRows = data.otps || [];
+  if (otpPage > otpPages()) otpPage = otpPages();
+  paintOtps();
   await fillHome();
   catRows = data.categories || [];
   if (catPage > catPages()) catPage = catPages();
@@ -223,6 +259,16 @@ async function load() {
     { label: "Reason", cell: (r) => esc(r.reason) },
     { label: "Status", cell: (r) => badge(r.status) }
   ], data.reports);
+  table(document.getElementById("partners"), [
+    { label: "Name", cell: (r) => esc(r.name) },
+    { label: "Type", cell: (r) => esc(r.type) },
+    { label: "Status", cell: (r) => badge(r.enabled ? "on" : "off") },
+    { label: "URL", cell: (r) => esc(r.url) },
+    { label: "", cell: (r) =>
+      '<button type="button" class="ghost" data-edit-partner="' + esc(r.id) + '">Edit</button> '
+      + '<button type="button" class="ghost" data-toggle-partner="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Disable" : "Enable") + "</button> "
+      + '<button type="button" class="ghost" data-del-partner="' + esc(r.id) + '">Delete</button>' }
+  ], data.partners || []);
   table(document.getElementById("staff"), [
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Username", cell: (r) => esc(r.username) },
@@ -310,6 +356,87 @@ if (homeSave) homeSave.onclick = async () => {
     msg.className = "err";
     msg.textContent = e.message;
   }
+};
+function resetPartnerForm() {
+  document.getElementById("partner-id").value = "";
+  document.getElementById("partner-name").value = "";
+  document.getElementById("partner-type").value = "sms";
+  document.getElementById("partner-url").value = "";
+  document.getElementById("partner-auth").value = "";
+  document.getElementById("partner-body").value = '{\n  "sender_id": "bhojaa_validation",\n  "numbers": "{{phone}}",\n  "rout": "sms",\n  "variables_values": "{{otp}}"\n}';
+  const msg = document.getElementById("partner-msg");
+  if (msg) { msg.className = "muted"; msg.textContent = ""; }
+}
+
+function fillPartnerForm(r) {
+  document.getElementById("partner-id").value = r.id;
+  document.getElementById("partner-name").value = r.name || "";
+  document.getElementById("partner-type").value = r.type === "whatsapp" ? "whatsapp" : "sms";
+  document.getElementById("partner-url").value = r.url || "";
+  document.getElementById("partner-auth").value = "";
+  document.getElementById("partner-body").value = JSON.stringify(r.body || {}, null, 2);
+  const msg = document.getElementById("partner-msg");
+  if (msg) { msg.className = "muted"; msg.textContent = ""; }
+}
+
+function showPartnerForm(on) {
+  const form = document.getElementById("partner-form");
+  const open = document.getElementById("partner-open");
+  if (form) form.classList.toggle("hide", !on);
+  if (open) open.classList.toggle("hide", on);
+}
+const partnerOpen = document.getElementById("partner-open");
+if (partnerOpen) partnerOpen.onclick = () => { resetPartnerForm(); showPartnerForm(true); };
+const partnerCancel = document.getElementById("partner-cancel");
+if (partnerCancel) partnerCancel.onclick = () => { resetPartnerForm(); showPartnerForm(false); };
+const partnerSave = document.getElementById("partner-save");
+if (partnerSave) partnerSave.onclick = async () => {
+  const msg = document.getElementById("partner-msg");
+  const id = document.getElementById("partner-id").value.trim();
+  const name = document.getElementById("partner-name").value.trim();
+  const url = document.getElementById("partner-url").value.trim();
+  const bodyRaw = document.getElementById("partner-body").value.trim();
+  msg.className = "muted";
+  if (name.length < 2) { msg.className = "err"; msg.textContent = "Name required."; return; }
+  if (!url) { msg.className = "err"; msg.textContent = "URL required."; return; }
+  try { JSON.parse(bodyRaw); } catch { msg.className = "err"; msg.textContent = "Body must be JSON."; return; }
+  try {
+    const payload = {
+      name,
+      type: document.getElementById("partner-type").value,
+      url,
+      auth: document.getElementById("partner-auth").value.trim(),
+      body: bodyRaw
+    };
+    if (!id) payload.enabled = true;
+    await api(id ? "/api/admin/partners/" + id : "/api/admin/partners", { body: payload });
+    resetPartnerForm();
+    showPartnerForm(false);
+    await load();
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e.message;
+  }
+};
+const partnersTable = document.getElementById("partners");
+if (partnersTable) partnersTable.onclick = async (e) => {
+  const edit = e.target.closest("[data-edit-partner]");
+  const tog = e.target.closest("[data-toggle-partner]");
+  const del = e.target.closest("[data-del-partner]");
+  try {
+    if (edit) {
+      const row = (await api("/api/admin/data")).partners.find((p) => p.id === edit.dataset.editPartner);
+      if (!row) return;
+      fillPartnerForm(row);
+      showPartnerForm(true);
+    } else if (tog) {
+      await api("/api/admin/partners/" + tog.dataset.togglePartner + "/toggle", { body: { enabled: tog.dataset.on === "1" } });
+      await load();
+    } else if (del) {
+      await api("/api/admin/partners/" + del.dataset.delPartner + "/delete", { body: {} });
+      await load();
+    }
+  } catch (err) { alert(err.message); }
 };
 const catOpen = document.getElementById("cat-open");
 if (catOpen) catOpen.onclick = () => showCatForm(true);

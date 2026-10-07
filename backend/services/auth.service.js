@@ -1,10 +1,10 @@
 const config = require("../config");
 const { User, Otp, Token, Admin } = require("../models");
 const { phoneOf } = require("../utils/http");
-const kapso = require("./kapso.service");
+const notify = require("./notify.service");
 
 function makeCode() {
-  return kapso.on() ? String(Math.floor(1000 + Math.random() * 9000)) : config.otp;
+  return notify.live() ? String(Math.floor(1000 + Math.random() * 9000)) : config.otp;
 }
 
 async function sendOtp(rawPhone) {
@@ -21,9 +21,9 @@ async function sendOtp(rawPhone) {
   if (isNew) User.ensure(phone);
   const code = makeCode();
   Otp.set(phone, code);
-  if (kapso.on()) await kapso.sendOtp(phone, code);
-  const message = kapso.on()
-    ? (isNew ? "Number registered. OTP sent on WhatsApp." : "OTP sent on WhatsApp.")
+  if (notify.live()) await notify.sendOtp(phone, code);
+  const message = notify.live()
+    ? (isNew ? "Number registered. OTP sent." : "OTP sent.")
     : (isNew ? "Number registered. OTP sent. Use 1234" : "OTP sent. Use 1234");
   return { ok: true, registered: isNew, resendIn: 30, message };
 }

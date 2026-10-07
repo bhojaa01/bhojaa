@@ -37,6 +37,7 @@
         <button type="button" class="menu-item" data-section="reviews">Reviews</button>
         <button type="button" class="menu-item" data-section="reports">Reports</button>
         <button type="button" class="menu-item" data-section="categories">Categories</button>
+        <button type="button" class="menu-item" data-section="partners">Partners</button>
         <button type="button" class="menu-item" data-section="otps">OTPs</button>
         <button type="button" class="menu-item" data-section="staff">Admins</button>
       </nav>
@@ -126,9 +127,44 @@
           <div class="table-wrap"><table id="categories"></table></div>
           <div class="pager" id="cat-pager"></div>
         </section>
+        <section class="panel hide" data-panel="partners">
+          <div class="panel-head">
+            <h2>Partners</h2>
+            <button class="btn" type="button" id="partner-open">Add partner</button>
+          </div>
+          <p class="muted intro">OTP / SMS providers. Enable one or more. Use {{phone}} and {{otp}} in the JSON body.</p>
+          <div class="card hide" id="partner-form" style="margin-bottom:14px"><div class="pad">
+            <input type="hidden" id="partner-id">
+            <label>Name</label>
+            <input id="partner-name" placeholder="GoSMS">
+            <label>Type</label>
+            <select id="partner-type">
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+            <label>URL</label>
+            <input id="partner-url" placeholder="https://gosms.in/api/v1/sms">
+            <label>Authorization</label>
+            <input id="partner-auth" placeholder="Leave blank to keep current">
+            <label>JSON body</label>
+            <textarea id="partner-body" rows="6">{
+  "sender_id": "bhojaa_validation",
+  "numbers": "{{phone}}",
+  "rout": "sms",
+  "variables_values": "{{otp}}"
+}</textarea>
+            <p id="partner-msg" class="muted"></p>
+            <p class="row" style="margin-top:8px">
+              <button class="btn" type="button" id="partner-save">Save</button>
+              <button class="ghost" type="button" id="partner-cancel">Cancel</button>
+            </p>
+          </div></div>
+          <div class="table-wrap"><table id="partners"></table></div>
+        </section>
         <section class="panel hide" data-panel="otps">
           <h2>OTPs</h2>
           <div class="table-wrap"><table id="otps"></table></div>
+          <div class="pager" id="otp-pager"></div>
         </section>
         <section class="panel hide" data-panel="staff">
           <h2>Admins</h2>

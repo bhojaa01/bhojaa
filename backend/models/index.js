@@ -9,5 +9,6 @@ const Category = require("./category.model");
 const Food = require("./food.model");
 const Token = require("./token.model");
 const Admin = require("./admin.model");
+const Partner = require("./partner.model");
 
-module.exports = { User, Otp, Listing, NeedRequest, Order, Review, Report, Category, Food, Token, Admin };
+module.exports = { User, Otp, Listing, NeedRequest, Order, Review, Report, Category, Food, Token, Admin, Partner };
