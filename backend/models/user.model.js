@@ -16,7 +16,8 @@ function create(data) {
     country: data.country || "",
     role: data.role || "user",
     roles: data.role && data.role !== "user" ? [data.role] : [],
-    createdAt: new Date()
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
 }
 
@@ -54,12 +55,14 @@ async function setLocation(user, lng, lat, given) {
   } else if (!(same && user.city && user.state && user.country && !thinAddress(user.address))) {
     applyPlace(user, await geo.reverse(lat, lng));
   }
+  user.updatedAt = new Date();
   db.users.updateById(user._id, {
     location: user.location,
     address: user.address || "",
     city: user.city || "",
     state: user.state || "",
-    country: user.country || ""
+    country: user.country || "",
+    updatedAt: user.updatedAt
   });
   return user;
 }
@@ -84,7 +87,8 @@ function dump(u) {
     location: u.location,
     lat: p.lat,
     lng: p.lng,
-    createdAt: u.createdAt
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt || u.createdAt
   };
 }
 
@@ -136,6 +140,7 @@ function size() {
 }
 
 function save(user) {
+  user.updatedAt = new Date();
   return db.users.save(user);
 }
 

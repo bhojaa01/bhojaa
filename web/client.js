@@ -125,9 +125,13 @@ const SP = {
     if (t == null || t === "") return "—";
     const d = new Date(typeof t === "number" && t < 1e12 ? t * 1000 : t);
     if (!Number.isFinite(d.getTime())) return "—";
-    const date = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-    return date + ", " + time;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    let h = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const ap = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return dd + "-" + mm + "-" + d.getFullYear() + " " + String(h).padStart(2, "0") + ":" + min + ap;
   },
   who(name, phone) {
     const n = name || "Neighbor";
@@ -153,8 +157,7 @@ function takeMore(rows, n) {
   return { rows: all.slice(0, take), shown: take, total: all.length, more: take < all.length };
 }
 function moreBar(key, shown, total) {
-  if (!total) return "";
-  if (shown >= total) return `<p class="muted pager-meta">${total} item${total === 1 ? "" : "s"}</p>`;
+  if (!total || shown >= total) return "";
   return `<p class="muted pager-meta" data-more="${key}">${shown} of ${total}</p>`;
 }
 function watchMore(root, onMore) {
@@ -582,6 +585,10 @@ function extraFoodCard(l) {
   const wait = (l.waiting || 0) > 0;
   const done = l.status === "done" || (l.given || 0) > 0;
   const badge = done ? '<span class="badge">Collected</span>' : wait ? '<span class="badge time">Waiting</span>' : "";
+  const order = ((l.history || l.requests || []).find((o) => o && o.id)) || null;
+  const cta = done
+    ? (order ? `<a class="ghost food-cta" href="order.html?id=${order.id}">View details</a>` : "")
+    : `<a class="btn food-cta" href="listing.html?id=${l.id}">Open extra food</a>`;
   return `<article class="food-row">
     <img src="${l.image}" alt="">
     <div class="food-body">
@@ -591,7 +598,7 @@ function extraFoodCard(l) {
       <p class="food-line"><span>Available until</span><b>${SP.when(l.until)}</b></p>
       <p class="food-line"><span>Pickup requests</span><b>${(l.waiting || 0) + (l.given || 0)}</b></p>
       ${badge}
-      <a class="btn food-cta" href="listing.html?id=${l.id}">Open extra food</a>
+      ${cta}
     </div>
   </article>`;
 }
@@ -653,9 +660,11 @@ function openGiveForm(need) {
     applyNeedFood(need.what);
   }
   box.classList.remove("hide");
+  const list = document.getElementById("give-list");
+  if (list) list.classList.add("hide");
   const openBtn = document.getElementById("open-give");
   if (openBtn) openBtn.classList.add("hide");
-  box.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.scrollTo(0, 0);
 }
 
 function bindNeedOffers(root, msg, needs) {
@@ -729,6 +738,8 @@ async function pageGive() {
   if (openGive) openGive.onclick = () => openGiveForm();
   if (closeGive) closeGive.onclick = () => {
     if (giveBox) giveBox.classList.add("hide");
+    const list = document.getElementById("give-list");
+    if (list) list.classList.remove("hide");
     if (openGive) openGive.classList.remove("hide");
   };
   document.getElementById("save").onclick = async () => {
@@ -754,7 +765,7 @@ async function pageGive() {
   if (posted) {
     try {
       const mine = await SP.api("/api/mine");
-      const list = mine.listings || [];
+      const list = (mine.listings || []).filter((l) => l.status !== "done" && l.status !== "expired" && l.status !== "inactive" && !(l.given > 0));
       const qBox = document.getElementById("q");
       let shown = PAGE;
       function filtered() {
@@ -844,6 +855,7 @@ async function pageMine() {
       got.forEach((o) => { if (!seen.has(o.id)) needRowsAll.push({ n: null, o }); });
     }
     let shown = { incoming: PAGE, gave: PAGE, req: PAGE };
+    let mineFilter = "all";
     function bindMine() {
       bindNeedOffers(root);
       root.querySelectorAll("[data-accept]").forEach((b) => {
@@ -874,93 +886,137 @@ async function pageMine() {
         shown[key] = (shown[key] || PAGE) + PAGE;
         paintMine();
       });
+      root.querySelectorAll("[data-filter]").forEach((b) => {
+        b.onclick = () => { mineFilter = b.dataset.filter; paintMine(); };
+      });
     }
     function paintMine() {
     const parts = [];
+    const icoBowl = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16c0 5-3.5 9-8 9s-8-4-8-9z"/><path d="M8 10V8a4 4 0 018 0v2"/></svg>';
+    const kindLabel = { pending: "Pending", ready: "Ready for pickup", collected: "Collected", cancelled: "Cancelled" };
+    const dayOf = (t) => (whenLine(t) || "").split(" · ")[0];
+    const mineCard = (x) => `<article class="mine-card">
+      <div class="mine-main">
+        ${x.image ? `<img class="mine-ico" src="${x.image}" alt="">` : `<span class="mine-ico">${icoBowl}</span>`}
+        <div>
+          <div class="mine-title-row"><h3>${x.title}</h3><span class="st st-${x.kind}">${kindLabel[x.kind]}</span></div>
+          <p class="mine-sub">${x.servings} serving${x.servings === 1 ? "" : "s"}${x.place ? " · " + x.place : ""}</p>
+          ${x.oid ? `<p class="mine-id">${x.oid}</p>` : ""}
+        </div>
+      </div>
+      <div class="mine-foot">
+        <div class="mine-who">${x.who || "Waiting"}<small>${x.when || ""}</small></div>
+        ${x.accept ? `<button class="btn" type="button" data-accept="${x.accept}">Accept</button>` : x.oid ? `<a class="mine-link" href="order.html?id=${x.oid}">View details ›</a>` : x.inactive ? `<button class="btn-del" type="button" data-inactive="${x.inactive}">Set inactive</button>` : ""}
+      </div>
+    </article>`;
     if (role() === "giver") {
       const incoming = takeMore(incomingAll, shown.incoming);
       parts.push("<h2>Pickup requests</h2>");
+      parts.push('<p class="mine-lead">Accept a request to share your pickup address.</p>');
       if (!incoming.total) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Wait for someone in Need mode.</p></div></div>');
       incoming.rows.forEach((o) => {
-        parts.push(`<div class="card req-card"><div class="pad">
-          <div class="row"><h3>${o.name}</h3><span class="badge time">Waiting</span></div>
-          <p class="req-note muted">Someone nearby asked to collect this. Accept to share your address.</p>
-          <div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div>
-          <div class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></div>
-          <div class="kv"><span>Servings</span><b>${o.servings}</b></div>
-          <div class="kv"><span>Available until</span><b>${SP.when(o.until)}</b></div>
-          <div class="kv"><span>Status</span><b>${SP.statusLabel(o.status)}</b></div>
-          <p class="row" style="margin-top:14px"><button class="btn" type="button" data-accept="${o.id}">Accept and share address</button></p>
-        </div></div>`);
+        parts.push(mineCard({
+          title: o.name,
+          kind: "pending",
+          servings: o.servings || 1,
+          place: o.address || (SP.user() || {}).address || "",
+          oid: o.id,
+          image: o.image || "",
+          who: o.seekerName || "Neighbor",
+          when: dayOf(o.createdAt),
+          accept: o.id
+        }));
       });
       parts.push(moreBar("incoming", incoming.shown, incoming.total));
       parts.push("<h2>Food you gave</h2>");
-      const givenCards = [];
-      if (!givenAll.length && !extraGiveAll.length) givenCards.push('<div class="card"><div class="pad"><p class="muted">No food given yet. Publish a listing from <a href="provider.html">Give</a>.</p></div></div>');
+      parts.push('<p class="mine-lead">Track food you listed and pickups.</p>');
+      const pills = [["all", "All"], ["pending", "Pending"], ["ready", "Ready for pickup"], ["collected", "Collected"], ["cancelled", "Cancelled"]];
+      parts.push('<div class="pills">' + pills.map(([k, l]) => `<button type="button" data-filter="${k}" class="${mineFilter === k ? "on" : ""}">${l}</button>`).join("") + "</div>");
+      const givenItems = [];
       givenAll.forEach((l) => {
         const done = l.status === "done" || (l.given || 0) > 0;
         const off = l.status === "inactive";
         const expired = !done && !off && (l.status === "expired" || l.minLeft <= 0);
-        const note = done ? "Pickup completed." : off ? "Inactive. Hidden from Nearby." : expired ? "Unaccepted and expired." : (l.waiting || 0) ? "Pickup request waiting." : "Visible to nearby seekers.";
+        const kind = done ? "collected" : off || expired ? "cancelled" : (l.waiting || 0) ? "pending" : l.status === "reserved" ? "ready" : "pending";
         const folks = (l.history || l.requests || []);
-        const whoNeed = folks.length
-          ? folks.map((o) => `<div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div><div class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></div>${o.acceptedAt ? `<div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></div>` : ""}${o.collectedAt ? `<div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>` : ""}`).join("")
-          : '<div class="kv"><span>Need</span><b>No one yet</b></div>';
-        givenCards.push(`<div class="card req-card${expired || off ? " is-expired" : ""}"><div class="pad">
-          <div class="row"><h3>${l.name}</h3><span class="badge${expired || off ? " exp" : ""}">${done ? "Collected" : off ? "Inactive" : expired ? "Expired" : SP.statusLabel(l.status)}</span></div>
-          <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
-          ${whoNeed}
-          <div class="kv"><span>Posted</span><b>${SP.when(l.createdAt)}</b></div>
-          <div class="kv"><span>Available until</span><b>${SP.when(l.until)}</b></div>
-          <div class="kv"><span>Servings</span><b>${l.servings}</b></div>
-          <div class="kv"><span>Category</span><b>${l.category || "meal"} · ${(l.diet || "veg").toUpperCase()}</b></div>
-          <div class="kv"><span>Time left</span><b>${done ? "Completed" : off || expired ? "Expired" : SP.left(l.minLeft)}</b></div>
-          <div class="kv"><span>Pickups</span><b>${l.given || 0} done · ${l.waiting || 0} waiting</b></div>
-          ${expired ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-inactive="${l.id}">Set inactive</button></p>` : ""}
-        </div></div>`);
+        const person = folks[0];
+        givenItems.push({
+          title: l.name,
+          kind,
+          servings: l.servings || 1,
+          place: l.address || (SP.user() || {}).address || "",
+          oid: person && person.id,
+          image: l.image || "",
+          who: person ? (person.seekerName || "Neighbor") : "No one yet",
+          when: dayOf((person && (person.collectedAt || person.acceptedAt || person.createdAt)) || l.createdAt),
+          inactive: expired ? l.id : ""
+        });
       });
       extraGiveAll.forEach((o) => {
-        givenCards.push(`<div class="card req-card"><div class="pad">
-          <div class="row"><h3>${o.name}</h3><span class="badge">${SP.statusLabel(o.status)}</span></div>
-          <p class="req-note muted">You offered this to a neighbor.</p>
-          <div class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></div>
-          <div class="kv"><span>Requested</span><b>${SP.when(o.createdAt || o.acceptedAt || o.collectedAt)}</b></div>
-          <div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt || o.collectedAt)}</b></div>
-          <div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>
-          <div class="kv"><span>Servings</span><b>${o.servings}</b></div>
-        </div></div>`);
+        const kind = o.status === "collected" ? "collected" : o.status === "accepted" ? "ready" : o.status === "declined" ? "cancelled" : "pending";
+        givenItems.push({
+          title: o.name,
+          kind,
+          servings: o.servings || 1,
+          place: o.address || "",
+          oid: o.id,
+          image: o.image || "",
+          who: o.seekerName || "Neighbor",
+          when: dayOf(o.collectedAt || o.acceptedAt || o.createdAt)
+        });
       });
-      const gave = takeMore(givenCards, shown.gave);
-      gave.rows.forEach((html) => parts.push(html));
+      const filteredGive = mineFilter === "all" ? givenItems : givenItems.filter((x) => x.kind === mineFilter);
+      if (!filteredGive.length) parts.push('<div class="card"><div class="pad"><p class="muted">No food in this list. Publish from <a href="provider.html">Give</a>.</p></div></div>');
+      const gave = takeMore(filteredGive, shown.gave);
+      gave.rows.forEach((x) => parts.push(mineCard(x)));
       parts.push(moreBar("gave", gave.shown, gave.total));
     } else {
-      const rows = takeMore(needRowsAll, shown.req);
-      parts.push("<h2>Your requests</h2>");
-      if (!rows.total) parts.push('<div class="card"><div class="pad"><p class="muted">No requests yet. Post one from Need.</p></div></div>');
-      rows.rows.forEach((row) => {
+      const icoBowl = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16c0 5-3.5 9-8 9s-8-4-8-9z"/><path d="M8 10V8a4 4 0 018 0v2"/></svg>';
+      const kindOf = (status, expired) => {
+        if (expired || status === "expired" || status === "declined" || status === "inactive") return "cancelled";
+        if (status === "collected") return "collected";
+        if (status === "accepted") return "ready";
+        return "pending";
+      };
+      const kindLabel = { pending: "Pending", ready: "Ready for pickup", collected: "Collected", cancelled: "Cancelled" };
+      const labeled = needRowsAll.map((row) => {
         const n = row.n;
         const o = row.o;
         const status = (o && o.status) || (n && n.status) || "open";
         const expired = !o && n && (n.status === "expired" || n.minLeft <= 0);
+        return { ...row, kind: kindOf(status, expired) };
+      });
+      const filtered = mineFilter === "all" ? labeled : labeled.filter((r) => r.kind === mineFilter);
+      const rows = takeMore(filtered, shown.req);
+      const pills = [["all", "All"], ["pending", "Pending"], ["ready", "Ready for pickup"], ["collected", "Collected"], ["cancelled", "Cancelled"]];
+      parts.push("<h2>My requests</h2>");
+      parts.push('<p class="mine-lead">Track your food requests and pickups.</p>');
+      parts.push('<div class="pills">' + pills.map(([k, l]) => `<button type="button" data-filter="${k}" class="${mineFilter === k ? "on" : ""}">${l}</button>`).join("") + "</div>");
+      if (!rows.total) parts.push('<div class="card"><div class="pad"><p class="muted">No requests in this list.</p></div></div>');
+      rows.rows.forEach((row) => {
+        const n = row.n;
+        const o = row.o;
         const title = (n && n.what) || (o && o.name) || "Request";
-        const note = expired ? "Needed-by time has passed." : status === "collected" ? "Collected." : status === "accepted" ? "Giver accepted. Collect before expiry." : status === "requested" || status === "matched" ? "Waiting for pickup." : "Waiting for a nearby giver to accept.";
-        const giver = (o && o.giverName) || (n && n.giverName);
-        const giverPhone = (o && o.giver) || (n && n.giver);
-        const open = o && (o.status === "requested" || o.status === "accepted");
-        parts.push(`<div class="card req-card${expired ? " is-expired" : ""}"><div class="pad">
-          <div class="row"><h3>${title}</h3><span class="badge${expired ? " exp" : status === "accepted" || status === "matched" ? " time" : ""}">${expired ? "Expired" : SP.statusLabel(status)}</span></div>
-          <p class="req-note ${expired ? "err" : "muted"}">${note}</p>
-          <div class="kv"><span>Gave</span><b>${giver ? SP.who(giver, giverPhone) : "Waiting for a giver"}</b></div>
-          <div class="kv"><span>Posted</span><b>${SP.when((n && n.createdAt) || (o && o.createdAt))}</b></div>
-          ${n ? `<div class="kv"><span>Needed by</span><b>${SP.when(n.until)}</b></div>` : ""}
-          <div class="kv"><span>Requested</span><b>${SP.when((o && o.createdAt) || (n && n.createdAt))}</b></div>
-          ${o && o.acceptedAt ? `<div class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></div>` : ""}
-          ${o && o.collectedAt ? `<div class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></div>` : ""}
-          <div class="kv"><span>Servings</span><b>${(n && n.servings) || (o && o.servings) || 1}</b></div>
-          ${n && !expired && !o ? `<div class="kv"><span>Time left</span><b>${SP.left(n.minLeft)}</b></div>` : ""}
-          ${open ? `<p style="margin-top:10px"><a class="btn" href="order.html?id=${o.id}">Open pickup</a></p>` : ""}
-          ${expired && n ? `<p class="row" style="margin-top:14px"><button class="btn-del" type="button" data-del-need="${n.id}">Delete</button></p>` : ""}
-        </div></div>`);
+        const servings = (n && n.servings) || (o && o.servings) || 1;
+        const place = (o && o.address) || (SP.user() || {}).address || "";
+        const giver = (o && o.giverName) || (n && n.giverName) || "Waiting";
+        const when = whenLine((o && (o.collectedAt || o.acceptedAt || o.createdAt)) || (n && n.createdAt)).split(" · ")[0];
+        const oid = (o && o.id) || "";
+        const img = (o && o.image) || "";
+        parts.push(`<article class="mine-card">
+          <div class="mine-main">
+            ${img ? `<img class="mine-ico" src="${img}" alt="">` : `<span class="mine-ico">${icoBowl}</span>`}
+            <div>
+              <div class="mine-title-row"><h3>${title}</h3><span class="st st-${row.kind}">${kindLabel[row.kind]}</span></div>
+              <p class="mine-sub">${servings} serving${servings === 1 ? "" : "s"}${place ? " · " + place : ""}</p>
+              ${oid ? `<p class="mine-id">${oid}</p>` : ""}
+            </div>
+          </div>
+          <div class="mine-foot">
+            <div class="mine-who">${giver}<small>${when}</small></div>
+            ${oid ? `<a class="mine-link" href="order.html?id=${oid}">View details ›</a>` : ""}
+          </div>
+        </article>`);
       });
       parts.push(moreBar("req", rows.shown, rows.total));
     }
@@ -973,6 +1029,25 @@ async function pageMine() {
   }
 }
 
+function whenLine(t) {
+  if (t == null || t === "") return "";
+  const d = new Date(typeof t === "number" && t < 1e12 ? t * 1000 : t);
+  if (!Number.isFinite(d.getTime())) return "";
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()];
+  let h = d.getHours();
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return String(d.getDate()).padStart(2, "0") + " " + mon + " " + d.getFullYear() + " · " + String(h).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + " " + ap;
+}
+
+function starsHtml(n, clickable) {
+  let s = "";
+  for (let i = 1; i <= 5; i++) s += clickable
+    ? `<button type="button" data-star="${i}" class="${i <= n ? "on" : ""}">★</button>`
+    : `<span class="${i <= n ? "on" : ""}">★</span>`;
+  return s;
+}
+
 async function pageOrder() {
   if (!requireMode()) return;
   const id = SP.qs("id");
@@ -983,25 +1058,44 @@ async function pageOrder() {
     const o = data.order;
     const ready = o.status === "accepted";
     const done = o.status === "collected";
+    const reviewed = done && data.review;
+    const canReview = done && o.mineRequest && !data.review;
+    const icoUser = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.8-3.2 3-5 6.5-5s5.7 1.8 6.5 5"/></svg>';
+    const icoGive = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.6-9.4-8.5C.6 9.2 2.4 5 6.4 5c2 0 3.3 1.1 4.6 2.7C12.3 6.1 13.6 5 15.6 5c4 0 5.8 4.2 3.8 7.5C19 16.4 12 21 12 21z"/></svg>';
+    const step = (on, title, t) => `<div class="prog-step${on ? " on" : ""}"><i>${on ? "✓" : ""}</i><div><b>${title}</b>${t ? `<span>${whenLine(t)}</span>` : ""}</div></div>`;
     root.innerHTML = `
       <p><a href="mine.html">← My requests</a></p>
       <h1>Pickup details</h1>
-      <div class="card"><div class="pad">
-        <span class="badge ${ready ? "time" : ""}">${SP.statusLabel(o.status)}${ready ? " · Ready" : ""}</span>
-        <h3 style="margin:10px 0">${o.name} · ${o.servings} servings</h3>
-        <p class="kv"><span>Need</span><b>${SP.who(o.seekerName, o.seeker)}</b></p>
-        <p class="kv"><span>Gave</span><b>${SP.who(o.giverName, o.giver)}</b></p>
-        <p class="kv"><span>Requested</span><b>${SP.when(o.createdAt)}</b></p>
-        ${o.acceptedAt ? `<p class="kv"><span>Accepted</span><b>${SP.when(o.acceptedAt)}</b></p>` : ""}
-        ${o.collectedAt ? `<p class="kv"><span>Collected</span><b>${SP.when(o.collectedAt)}</b></p>` : ""}
-        <p>${o.address ? o.address + "<br>Call after you reach the gate." : o.hint}</p>
-        <p class="meta">This listing: ${o.given || 0} pickups done · Giver: ${o.providerGiven || 0} given · You: ${o.seekerCollected || 0} collected</p>
-        <p class="ok" id="done">${done ? "Collected. Thank you." : ""}</p>
+      <p class="pickup-kicker">Order #${o.id}</p>
+      <div class="card pickup-card"><div class="pad">
+        <div class="pickup-top">
+          <span class="badge ${ready ? "time" : ""}">${done ? "✓ " : ""}${SP.statusLabel(o.status)}${ready ? " · Ready" : ""}</span>
+          <span class="pickup-serv">${o.servings} serving${o.servings === 1 ? "" : "s"}</span>
+        </div>
+        <h3>${o.name}</h3>
+        <div class="who-row"><span class="who-ico">${icoUser}</span><div><small>Requested by</small><b>${o.seekerName || "Neighbor"}</b><em>${o.seeker || ""}</em></div></div>
+        <div class="who-row"><span class="who-ico">${icoGive}</span><div><small>Food provided by</small><b>${o.giverName || "Neighbor"}</b><em>${o.giver || ""}</em></div></div>
+        <div class="prog">
+          <h4>Pickup progress</h4>
+          ${step(!!o.createdAt, "Request submitted", o.createdAt)}
+          ${step(!!o.acceptedAt, "Request accepted", o.acceptedAt)}
+          ${step(!!o.collectedAt, "Food collected", o.collectedAt)}
+        </div>
+        ${o.address ? `<div class="loc-box"><b>Pickup location</b>${o.address}<div class="muted">Call after you reach the gate.</div></div>` : `<p class="muted">${o.hint || ""}</p>`}
+        ${done ? '<div class="done-box"><b>Pickup completed successfully!</b><span class="muted">Thank you for helping reduce food waste.</span></div>' : ""}
+        <p class="ok" id="done"></p>
+        ${reviewed ? `<div class="rev-head"><h4>${o.mineRequest ? "Your review" : "Review received"}</h4><b>${data.review.rating}/5</b></div><div class="stars">${starsHtml(data.review.rating)}</div>${data.review.comment ? `<div class="fb-box"><small>${o.mineRequest ? "Your feedback" : "Feedback"}</small>${data.review.comment}</div>` : ""}` : ""}
+        ${canReview ? `<div class="rev-head"><h4>Your review</h4><b id="rate-n">5/5</b></div>
+            <div class="stars" id="stars">${starsHtml(5, true)}</div>
+            <input type="hidden" id="rating" value="5">
+            <textarea id="comment" rows="3" placeholder="How was the pickup?"></textarea>
+            <p id="rev-msg" class="ok"></p>` : ""}
         <p class="row" style="margin-top:14px">
           ${ready && o.mineRequest ? '<button class="btn" id="got" type="button">I collected it</button>' : ""}
           ${o.status === "requested" && o.mineGive ? '<button class="btn" id="ok" type="button">Accept request</button>' : ""}
-          <a class="ghost" href="mine.html">Back</a>
+          ${canReview ? '<button class="btn" id="rev" type="button">Submit review</button>' : ""}
         </p>
+        <a class="ghost back-wide" href="mine.html">← Back to requests</a>
       </div></div>`;
     const got = document.getElementById("got");
     if (got) got.onclick = async () => {
@@ -1016,6 +1110,34 @@ async function pageOrder() {
         await SP.api("/api/orders/" + id + "/accept", { body: {} });
         location.reload();
       } catch (e) { document.getElementById("done").className = "err"; document.getElementById("done").textContent = e.message; }
+    };
+    const stars = document.getElementById("stars");
+    if (stars) stars.onclick = (e) => {
+      const b = e.target.closest("[data-star]");
+      if (!b) return;
+      const n = Number(b.dataset.star);
+      document.getElementById("rating").value = n;
+      const label = document.getElementById("rate-n");
+      if (label) label.textContent = n + "/5";
+      stars.querySelectorAll("[data-star]").forEach((x) => x.classList.toggle("on", Number(x.dataset.star) <= n));
+    };
+    const rev = document.getElementById("rev");
+    if (rev) rev.onclick = async () => {
+      if (rev.disabled) return;
+      const msg = document.getElementById("rev-msg");
+      msg.className = "ok";
+      rev.disabled = true;
+      try {
+        await SP.api("/api/orders/" + id + "/review", { body: {
+          rating: document.getElementById("rating").value,
+          comment: document.getElementById("comment").value
+        }});
+        location.reload();
+      } catch (e) {
+        rev.disabled = false;
+        msg.className = "err";
+        msg.textContent = e.message;
+      }
     };
   } catch (e) {
     root.innerHTML = `<p class="err">${e.message}</p>`;

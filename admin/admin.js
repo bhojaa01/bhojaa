@@ -20,7 +20,15 @@ function esc(v) {
 }
 function when(t) {
   if (!t) return "";
-  return new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const d = new Date(t);
+  if (!Number.isFinite(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  let h = d.getHours();
+  const min = String(d.getMinutes()).padStart(2, "0");
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return dd + "-" + mm + "-" + d.getFullYear() + " " + String(h).padStart(2, "0") + ":" + min + ap;
 }
 function geo(r) {
   const c = r.location && r.location.coordinates;
@@ -204,6 +212,7 @@ async function load() {
     { label: "City / town", cell: (r) => esc(r.city) },
     { label: "State", cell: (r) => esc(r.state) },
     { label: "Country", cell: (r) => esc(r.country) },
+    { label: "Last update", cell: (r) => esc(when(r.updatedAt || r.createdAt)) },
     { label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
   ], data.users);
   otpRows = data.otps || [];
@@ -246,10 +255,12 @@ async function load() {
   table(document.getElementById("reviews"), [
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Order", cell: (r) => esc(r.orderId) },
-    { label: "From", cell: (r) => esc(r.fromUserId) },
-    { label: "To", cell: (r) => esc(r.toUserId) },
-    { label: "Rating", cell: (r) => esc(r.rating) },
-    { label: "Comment", cell: (r) => esc(r.comment) }
+    { label: "Food", cell: (r) => esc(r.listing) },
+    { label: "From", cell: (r) => esc(r.from) },
+    { label: "To", cell: (r) => esc(r.to) },
+    { label: "Rating", cell: (r) => esc(r.rating) + " / 5" },
+    { label: "Comment", cell: (r) => esc(r.comment) },
+    { label: "When", cell: (r) => esc(when(r.createdAt)) }
   ], data.reviews);
   table(document.getElementById("reports"), [
     { label: "Id", cell: (r) => esc(r.id) },

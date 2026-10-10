@@ -1,5 +1,5 @@
 const config = require("../config");
-const { Order, Listing, NeedRequest, User } = require("../models");
+const { Order, Listing, NeedRequest, User, Review } = require("../models");
 const listingService = require("./listing.service");
 const needService = require("./need.service");
 
@@ -86,7 +86,11 @@ function get(who, id) {
   if (!o || (o.seekerId !== who._id && o.providerId !== who._id)) {
     throw Object.assign(new Error("Not found"), { status: 404 });
   }
-  return { order: view(o, who) };
+  const row = Review.findByOrder(o._id)[0];
+  return {
+    order: view(o, who),
+    review: row ? { rating: row.rating, comment: row.comment, mine: String(row.fromUserId) === String(who._id) } : null
+  };
 }
 
 function accept(who, id) {

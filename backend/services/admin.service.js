@@ -55,7 +55,21 @@ function data() {
       return { ...n, id: n._id, lat: p.lat, lng: p.lng, minLeft: geo.minutesLeft(n.neededBy, now) };
     }),
     orders: Order.all().map((o) => ({ ...o, id: o._id })),
-    reviews: Review.all().map((r) => ({ ...r, id: r._id })),
+    reviews: Review.all().map((r) => {
+      const from = User.findById(r.fromUserId);
+      const to = User.findById(r.toUserId);
+      const o = Order.findById(r.orderId);
+      return {
+        id: r._id,
+        orderId: r.orderId,
+        listing: o ? (Listing.findById(o.listingId) || {}).name || "" : "",
+        from: from ? from.phone : r.fromUserId,
+        to: to ? to.phone : r.toUserId,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt
+      };
+    }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
     reports: Report.all().map((r) => ({ ...r, id: r._id })),
     categories: Category.all().map((c) => ({ ...c, id: c._id })),
     staff: Admin.all().map(Admin.dump),

@@ -12,7 +12,8 @@ function create(data) {
 }
 
 function findByOrder(orderId) {
-  return db.reviews.find({ orderId });
+  const id = String(orderId);
+  return db.reviews.find((d) => String(d.orderId) === id);
 }
 
 function all() {

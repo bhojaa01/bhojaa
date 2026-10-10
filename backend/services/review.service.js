@@ -6,6 +6,9 @@ function create(who, orderId, body) {
     throw Object.assign(new Error("Not found"), { status: 404 });
   }
   if (o.status !== "collected") throw Object.assign(new Error("Collect first"), { status: 400 });
+  if (String(o.seekerId) !== String(who._id)) throw Object.assign(new Error("Only the collector can review"), { status: 403 });
+  const existing = Review.findByOrder(o._id);
+  if (existing.length) throw Object.assign(new Error("Already reviewed"), { status: 400 });
   const rating = Number(body.rating);
   if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
     throw Object.assign(new Error("Rating 1–5 required"), { status: 400 });
