@@ -370,7 +370,7 @@ async function pageLogin() {
       const data = await SP.api("/api/otp", { body: { phone: phone.value }, allow401: true });
       msg.textContent = data.message;
       box.classList.remove("hide");
-      go.textContent = "Login";
+      go.textContent = "Verify";
       step = "otp";
       otp.value = "";
       otp.focus();
@@ -387,7 +387,7 @@ async function pageLogin() {
     if (step === "otp") {
       step = "phone";
       box.classList.add("hide");
-      go.textContent = "Continue";
+      go.textContent = "Send OTP";
       msg.textContent = "";
       clearInterval(tick);
       timer.textContent = "";

@@ -34,6 +34,22 @@ input#q{border-radius:16px;padding:14px 16px;margin:0 0 16px}
 .hero h1{font-size:clamp(2rem,6vw,3.6rem);line-height:1.05;max-width:13ch}
 .hero .card{background:#efe6d6}
 .hero img{width:100%;height:auto;aspect-ratio:800/533;object-fit:cover}
+.hero-city{font-weight:700;color:var(--forest);margin-bottom:8px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.hero-cta .btn,.hero-cta .ghost{text-align:center}
+.proof{font-weight:600;color:var(--forest);margin-top:10px}
+.how{margin:28px 0 8px}
+.how h2,.faq h2{margin-bottom:14px;color:var(--forest)}
+.steps{display:grid;gap:14px}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.step span{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;background:var(--forest);color:#fff;font-weight:700;font-size:.85rem;margin-bottom:8px}
+.step h3{margin:0 0 4px;font-size:1.1rem}
+.faq{margin:28px 0 8px}
+.faq details{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq details p{margin-top:8px}
+.site-foot{margin-top:40px;padding:28px 0;border-top:1px solid var(--line);color:var(--soft)}
+.site-foot a{margin-right:16px;font-weight:600;color:var(--forest)}
 .muted{color:var(--soft)}
 .banner{background:linear-gradient(135deg,#1e3a2e,#3b6553);color:#fff;border-radius:22px;padding:20px;margin:8px 0 16px}
 .banner p{opacity:.88;margin-top:4px}
@@ -182,6 +198,7 @@ input[readonly]{background:#f3eee4;color:var(--soft)}
 .mine-link{color:var(--forest);font-weight:700;white-space:nowrap}
 @media(min-width:860px){
   .hero{grid-template-columns:1.1fr .9fr;align-items:center}
+  .steps{grid-template-columns:repeat(3,1fr)}
   .grid{grid-template-columns:repeat(2,1fr)}
   .food-row{grid-template-columns:160px 1fr}
   .nav{position:static;height:auto;background:none;border:0;display:flex;gap:14px;justify-content:flex-end}

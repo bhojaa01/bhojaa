@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login</title>
+  <title>Log in to Bhojaa</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-page="login">
   <div class="wrap" style="max-width:460px">
-    <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
-    <h1>Welcome</h1>
+    <p><a href="index.html">← Home</a></p>
+    <div class="logo"><img class="brand" src="logo.svg" alt="Bhojaa"> Bhojaa</div>
+    <h1>Log in to Bhojaa</h1>
     <p class="muted">Enter your 10-digit mobile number. We’ll send an OTP.</p>
     <div class="card"><div class="pad">
       <label>Phone</label>
       <input id="phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="9876543210">
+      <p class="muted">Used only to connect you with the giver — never shown publicly until you accept.</p>
       <div id="otp-box" class="hide">
         <label>OTP</label>
         <input id="otp" inputmode="numeric" maxlength="4" placeholder="4-digit code">
@@ -20,7 +22,7 @@
       </div>
       <p id="msg" class="muted"></p>
       <p class="row">
-        <button class="btn" type="button" id="go">Continue</button>
+        <button class="btn" type="button" id="go">Send OTP</button>
       </p>
     </div></div>
   </div>

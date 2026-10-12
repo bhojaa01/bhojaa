@@ -8,7 +8,7 @@ const defaults = {
   aboutText: "Bhojaa connects neighbors. If you have extra food, post it. If you need a meal, ask nearby. The giver accepts, then you collect from their home. No delivery. No payment. Address stays private until they accept.",
   points: [
     { title: "Need food", text: "See leftover meals within a few kilometers, or post what you need. Nearby givers can accept." },
-    { title: "Give extra food", text: "Publish a dish, servings, and until when. A neighbor requests. They collect. Keep it free." },
+    { title: "Give extra food", text: "List a meal, how many servings, and until when. A neighbor can request it, then collect it from you. It stays free." },
     { title: "Safe pickup", text: "House number is shared only after you accept. Login with your phone to start." }
   ]
 };
@@ -35,7 +35,9 @@ function view(row) {
 }
 
 function get() {
-  return view(db.settings.findById("home"));
+  const Order = require("../models/order.model");
+  const meals = Order.all().filter((o) => o.status === "collected").length;
+  return { ...view(db.settings.findById("home")), stats: { meals, city: "Bengaluru" } };
 }
 
 function ensure() {
