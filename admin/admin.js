@@ -145,14 +145,27 @@ function bannerSrc(v) {
 function fillHomeForm(d) {
   if (!d) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+  set("home-city", d.city);
   set("home-headline", d.headline);
   set("home-tagline", d.tagline);
+  set("home-proof", d.proof);
   set("home-banner", d.banner);
+  set("home-how-title", d.howTitle);
   set("home-about-title", d.aboutTitle);
   set("home-about-text", d.aboutText);
+  set("home-faq-title", d.faqTitle);
+  set("home-footer", d.footer);
   (d.points || []).forEach((p, i) => {
     set("home-p" + i + "-title", p.title);
     set("home-p" + i + "-text", p.text);
+  });
+  (d.steps || []).forEach((s, i) => {
+    set("home-s" + i + "-title", s.title);
+    set("home-s" + i + "-text", s.text);
+  });
+  (d.faqs || []).forEach((f, i) => {
+    set("home-f" + i + "-q", f.q);
+    set("home-f" + i + "-a", f.a);
   });
   const prev = document.getElementById("home-preview");
   if (prev) prev.src = bannerSrc(d.banner);
@@ -350,15 +363,28 @@ if (homeSave) homeSave.onclick = async () => {
   try {
     await api("/api/admin/home", {
       body: {
+        city: document.getElementById("home-city").value,
         headline,
         tagline: document.getElementById("home-tagline").value,
+        proof: document.getElementById("home-proof").value,
         banner,
+        howTitle: document.getElementById("home-how-title").value,
+        steps: [0, 1, 2].map((i) => ({
+          title: document.getElementById("home-s" + i + "-title").value,
+          text: document.getElementById("home-s" + i + "-text").value
+        })),
         aboutTitle: document.getElementById("home-about-title").value,
         aboutText: document.getElementById("home-about-text").value,
         points: [0, 1, 2].map((i) => ({
           title: document.getElementById("home-p" + i + "-title").value,
           text: document.getElementById("home-p" + i + "-text").value
-        }))
+        })),
+        faqTitle: document.getElementById("home-faq-title").value,
+        faqs: [0, 1, 2].map((i) => ({
+          q: document.getElementById("home-f" + i + "-q").value,
+          a: document.getElementById("home-f" + i + "-a").value
+        })),
+        footer: document.getElementById("home-footer").value
       }
     });
     msg.className = "ok";

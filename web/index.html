@@ -16,23 +16,19 @@
     </div>
     <section class="hero">
       <div>
-        <p class="hero-city">Now in Bengaluru</p>
+        <p class="hero-city" id="home-city">Now in Bengaluru</p>
         <h1 id="home-headline">Extra food should feed someone nearby.</h1>
         <p class="muted" id="home-tagline">Share leftover tiffin, fruit or a meal. Pickup only. Free.</p>
         <p class="proof" id="home-proof">Active in Bengaluru. Pickup only.</p>
-        <p class="hero-cta">
-          <a class="btn" href="login.html?want=seeker">Find food near me</a>
-          <a class="ghost" href="login.html?want=giver">Share extra food</a>
-        </p>
       </div>
       <div class="card"><img id="home-banner" src="hero.jpg" width="800" height="533" alt="Home-cooked meals ready to share with a neighbor" fetchpriority="high" decoding="async"></div>
     </section>
     <section class="how">
-      <h2>How it works</h2>
+      <h2 id="home-how-title">How it works</h2>
       <div class="steps">
-        <div class="step"><span>1</span><h3>Post or ask</h3><p class="muted">Share extra food, or say what you need nearby.</p></div>
-        <div class="step"><span>2</span><h3>A neighbor requests</h3><p class="muted">Someone close by asks to collect. You choose whether to accept.</p></div>
-        <div class="step"><span>3</span><h3>You accept, they collect</h3><p class="muted">Address stays private until you accept. No delivery. No payment.</p></div>
+        <div class="step"><span>1</span><h3 id="home-s0-title">Post or ask</h3><p class="muted" id="home-s0-text">Share extra food, or say what you need nearby.</p></div>
+        <div class="step"><span>2</span><h3 id="home-s1-title">A neighbor requests</h3><p class="muted" id="home-s1-text">Someone close by asks to collect. You choose whether to accept.</p></div>
+        <div class="step"><span>3</span><h3 id="home-s2-title">You accept, they collect</h3><p class="muted" id="home-s2-text">Address stays private until you accept. No delivery. No payment.</p></div>
       </div>
     </section>
     <section class="banner">
@@ -54,15 +50,15 @@
       </div></div>
     </div>
     <section class="faq">
-      <h2>Common questions</h2>
-      <details><summary>Is the food safe?</summary><p class="muted">Bhojaa is neighbor-to-neighbor. Use your judgement, check the note for allergens, and collect only food you are comfortable eating. We do not inspect or certify meals.</p></details>
-      <details><summary>Can I give packed food?</summary><p class="muted">Yes. Leftover homemade food, packed meals, fruit, and similar extras are welcome. Say what’s inside and any allergens in the note.</p></details>
-      <details><summary>What if nobody’s nearby?</summary><p class="muted">Listings are shown only within a short pickup radius. If no one is close, wait a little or try again later. Pickup is always free and local.</p></details>
+      <h2 id="home-faq-title">Common questions</h2>
+      <details><summary id="home-f0-q">Is the food safe?</summary><p class="muted" id="home-f0-a">Bhojaa is neighbor-to-neighbor. Use your judgement, check the note for allergens, and collect only food you are comfortable eating. We do not inspect or certify meals.</p></details>
+      <details><summary id="home-f1-q">Can I give packed food?</summary><p class="muted" id="home-f1-a">Yes. Leftover homemade food, packed meals, fruit, and similar extras are welcome. Say what’s inside and any allergens in the note.</p></details>
+      <details><summary id="home-f2-q">What if nobody’s nearby?</summary><p class="muted" id="home-f2-a">Listings are shown only within a short pickup radius. If no one is close, wait a little or try again later. Pickup is always free and local.</p></details>
     </section>
   </div>
   <footer class="site-foot">
     <div class="wrap">
-      <p><b>Bhojaa</b> · Share extra food with neighbors in Bengaluru.</p>
+      <p id="home-footer">Bhojaa · Share extra food with neighbors in Bengaluru.</p>
       <p>
         <a href="guidelines.html">Community guidelines &amp; safety</a>
         <a href="privacy.html">Privacy</a>
@@ -74,23 +70,55 @@
     const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
       ? "http://localhost:4000"
       : "https://bhojaa-production.up.railway.app";
-    fetch(API + "/api/home").then((r) => r.json()).then((d) => {
+    function placeOf() {
+      return fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en")
+        .then((r) => r.json())
+        .then((d) => d.city || d.locality || d.principalSubdivision || "")
+        .catch(() => "");
+    }
+    Promise.all([
+      fetch(API + "/api/home").then((r) => r.json()).catch(() => null),
+      placeOf()
+    ]).then(([d, where]) => {
       if (!d || !d.headline) return;
       const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
+      set("home-city", d.city);
       set("home-headline", d.headline);
       set("home-tagline", d.tagline);
+      set("home-proof", d.proof);
+      set("home-how-title", d.howTitle);
       set("home-about-title", d.aboutTitle);
       set("home-about-text", d.aboutText);
+      set("home-faq-title", d.faqTitle);
+      set("home-footer", d.footer);
       (d.points || []).forEach((p, i) => {
         set("home-p" + i + "-title", p.title);
         set("home-p" + i + "-text", p.text);
       });
+      (d.steps || []).forEach((s, i) => {
+        set("home-s" + i + "-title", s.title);
+        set("home-s" + i + "-text", s.text);
+      });
+      (d.faqs || []).forEach((f, i) => {
+        set("home-f" + i + "-q", f.q);
+        set("home-f" + i + "-a", f.a);
+      });
       const img = document.getElementById("home-banner");
       if (img && d.banner) img.src = d.banner;
-      const proof = document.getElementById("home-proof");
-      const n = d.stats && Number(d.stats.meals);
-      if (proof && n > 0) proof.textContent = n + " meal" + (n === 1 ? "" : "s") + " collected in Bengaluru.";
-    }).catch(() => {});
+      if (where) {
+        set("home-city", "Now in " + where);
+        const n = d.stats && Number(d.stats.meals);
+        set("home-proof", n > 0
+          ? n + " meal" + (n === 1 ? "" : "s") + " collected in " + where + "."
+          : "Active in " + where + ". Pickup only.");
+        const foot = document.getElementById("home-footer");
+        if (foot && d.footer) foot.textContent = String(d.footer).replace(/Bengaluru/g, where);
+      } else {
+        const n = d.stats && Number(d.stats.meals);
+        const proof = document.getElementById("home-proof");
+        if (proof && n > 0) proof.textContent = n + " meal" + (n === 1 ? "" : "s") + " collected nearby.";
+      }
+    });
   </script>
 </body>
 </html>
