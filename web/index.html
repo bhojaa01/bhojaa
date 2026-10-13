@@ -8,27 +8,38 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="preload" as="image" href="hero.jpg">
 </head>
-<body>
+<body class="home">
   <div class="wrap">
     <div class="top">
       <div class="logo"><img class="brand" src="logo.svg" alt="Bhojaa"> Bhojaa</div>
       <a class="ghost" href="login.html">Login</a>
     </div>
     <section class="hero">
-      <div>
+      <div class="hero-copy">
         <p class="hero-city" id="home-city">Now in Bengaluru</p>
         <h1 id="home-headline">Extra food should feed someone nearby.</h1>
         <p class="muted" id="home-tagline">Share leftover tiffin, fruit or a meal. Pickup only. Free.</p>
         <p class="proof" id="home-proof">Active in Bengaluru. Pickup only.</p>
       </div>
-      <div class="card"><img id="home-banner" src="hero.jpg" width="800" height="533" alt="Home-cooked meals ready to share with a neighbor" fetchpriority="high" decoding="async"></div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="sbar"><span>Bhojaa</span><span>Nearby</span></div>
+          <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa</div>
+          <div class="card"><img id="home-banner" src="hero.jpg" width="800" height="533" alt="Home-cooked meals ready to share with a neighbor" fetchpriority="high" decoding="async"></div>
+          <div class="track">
+            <div class="ps done"><b class="dot">&#10003;</b><div><b>Requested</b><small>A neighbor asks to collect</small></div></div>
+            <div class="ps done"><b class="dot">&#10003;</b><div><b>Accepted</b><small>Pickup address shared</small></div></div>
+            <div class="ps done"><b class="dot">&#10003;</b><div><b>Collected</b><small>Free, picked up nearby</small></div></div>
+          </div>
+        </div>
+      </div>
     </section>
-    <section class="how">
+    <section class="how" id="how">
       <h2 id="home-how-title">How it works</h2>
       <div class="steps">
-        <div class="step"><span>1</span><h3 id="home-s0-title">Post or ask</h3><p class="muted" id="home-s0-text">Share extra food, or say what you need nearby.</p></div>
-        <div class="step"><span>2</span><h3 id="home-s1-title">A neighbor requests</h3><p class="muted" id="home-s1-text">Someone close by asks to collect. You choose whether to accept.</p></div>
-        <div class="step"><span>3</span><h3 id="home-s2-title">You accept, they collect</h3><p class="muted" id="home-s2-text">Address stays private until you accept. No delivery. No payment.</p></div>
+        <div class="step done"><div class="bar"><i></i></div><span>1</span><h3 id="home-s0-title">Post or ask</h3><p class="muted" id="home-s0-text">Share extra food, or say what you need nearby.</p></div>
+        <div class="step done"><div class="bar"><i></i></div><span>2</span><h3 id="home-s1-title">A neighbor requests</h3><p class="muted" id="home-s1-text">Someone close by asks to collect. You choose whether to accept.</p></div>
+        <div class="step done"><div class="bar"><i></i></div><span>3</span><h3 id="home-s2-title">You accept, they collect</h3><p class="muted" id="home-s2-text">Address stays private until you accept. No delivery. No payment.</p></div>
       </div>
     </section>
     <section class="banner">
@@ -99,6 +110,10 @@
         set("home-s" + i + "-title", s.title);
         set("home-s" + i + "-text", s.text);
       });
+      (d.needSteps || []).forEach((s, i) => {
+        set("home-n" + i + "-title", s.title);
+        set("home-n" + i + "-text", s.text);
+      });
       (d.faqs || []).forEach((f, i) => {
         set("home-f" + i + "-q", f.q);
         set("home-f" + i + "-a", f.a);
@@ -119,6 +134,21 @@
         if (proof && n > 0) proof.textContent = n + " meal" + (n === 1 ? "" : "s") + " collected nearby.";
       }
     });
+  </script>
+  <script>
+    (function () {
+      const steps = [...document.querySelectorAll(".home .step")];
+      const track = [...document.querySelectorAll(".home .ps")];
+      if (!steps.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      let k = 0;
+      function tick() {
+        steps.forEach((el, i) => { el.classList.toggle("done", i < k); el.classList.toggle("on", i === k); });
+        track.forEach((el, i) => el.classList.toggle("done", i <= k));
+        k = (k + 1) % steps.length;
+      }
+      tick();
+      setInterval(tick, 3600);
+    })();
   </script>
 </body>
 </html>

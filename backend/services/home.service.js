@@ -8,9 +8,14 @@ const defaults = {
   proof: "Active in Bengaluru. Pickup only.",
   howTitle: "How it works",
   steps: [
-    { title: "Post or ask", text: "Share extra food, or say what you need nearby." },
-    { title: "A neighbor requests", text: "Someone close by asks to collect. You choose whether to accept." },
-    { title: "You accept, they collect", text: "Address stays private until you accept. No delivery. No payment." }
+    { title: "Post extra food", text: "List the meal, servings, and until when." },
+    { title: "Wait for a request", text: "A neighbor nearby asks to collect it." },
+    { title: "Accept — they collect", text: "You accept, then they pick it up. Address stays private until then." }
+  ],
+  needSteps: [
+    { title: "See food nearby", text: "Open Need and find leftover meals close to you, or post what you need." },
+    { title: "Request pickup", text: "Ask to collect. The giver sees your request." },
+    { title: "Collect", text: "When they accept, you get the address and pick it up. Free." }
   ],
   aboutTitle: "What Bhojaa does",
   aboutText: "Bhojaa connects neighbors. If you have extra food, post it. If you need a meal, ask nearby. The giver accepts, then you collect from their home. No delivery. No payment. Address stays private until they accept.",
@@ -52,6 +57,7 @@ function view(row) {
     proof: str(d.proof, defaults.proof),
     howTitle: str(d.howTitle, defaults.howTitle),
     steps: trio(d.steps, defaults.steps, ["title", "text"]),
+    needSteps: trio(d.needSteps, defaults.needSteps, ["title", "text"]),
     aboutTitle: str(d.aboutTitle, defaults.aboutTitle),
     aboutText: str(d.aboutText, defaults.aboutText),
     points: trio(d.points, defaults.points, ["title", "text"]),
