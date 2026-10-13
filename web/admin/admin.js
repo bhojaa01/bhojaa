@@ -10,6 +10,7 @@ const LABELS = {
   reviews: "Reviews",
   reports: "Reports",
   home: "Home page",
+  visits: "Visitors",
   categories: "Categories",
   partners: "Partners",
   otps: "OTPs",
@@ -199,7 +200,65 @@ function catDup(name) {
 function showSection(name) {
   document.querySelectorAll(".menu-item").forEach((b) => b.classList.toggle("on", b.dataset.section === name));
   document.querySelectorAll("[data-panel]").forEach((p) => p.classList.toggle("hide", p.dataset.panel !== name));
+  if (name === "visits") loadVisits().catch(() => {});
 }
+
+let visitPage = 1;
+let visitOn = true;
+function place(r) {
+  return [r.city, r.state, r.country].filter(Boolean).join(", ") || "Unknown";
+}
+async function loadVisits() {
+  const d = await api("/api/admin/visits?page=" + visitPage + "&size=20");
+  visitOn = d.enabled;
+  const btn = document.getElementById("visit-toggle");
+  btn.textContent = visitOn ? "Turn off recording" : "Turn on recording";
+  btn.className = visitOn ? "ghost" : "btn";
+  document.getElementById("visit-msg").textContent = visitOn ? "Recording is on." : "Recording is off. New visits are not saved.";
+  document.getElementById("visit-stats").innerHTML = [
+    [d.total, "Total visits"],
+    [d.today, "Today"],
+    [d.places.length ? place(d.places[0]) : "None yet", "Top place"]
+  ].map(([v, k]) => `<div class="stat stat-static"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
+  table(document.getElementById("visit-places"), [
+    { label: "Place", cell: (r) => esc(place(r)) },
+    { label: "Visits", cell: (r) => esc(r.count) },
+    { label: "Last visit", cell: (r) => esc(when(r.last)) }
+  ], d.places);
+  table(document.getElementById("visits"), [
+    { label: "When", cell: (r) => esc(when(r.createdAt)) },
+    { label: "Area", cell: (r) => esc(r.locality && r.locality !== r.city ? r.locality : "") },
+    { label: "City", cell: (r) => esc(r.city) },
+    { label: "State", cell: (r) => esc(r.state) },
+    { label: "Country", cell: (r) => esc(r.country) },
+    { label: "Postcode", cell: (r) => esc(r.postcode) },
+    { label: "Lat", cell: (r) => esc(r.lat) },
+    { label: "Long", cell: (r) => esc(r.lng) },
+    { label: "Device", cell: (r) => esc(r.device) },
+    { label: "Page", cell: (r) => esc(r.page) }
+  ], d.rows);
+  const pages = Math.max(1, Math.ceil(d.total / d.size));
+  const pager = document.getElementById("visit-pager");
+  pager.innerHTML = d.total
+    ? '<button type="button" class="ghost" id="visit-prev"' + (visitPage <= 1 ? " disabled" : "") + ">Prev</button>"
+      + "<span>Page " + visitPage + " of " + pages + " · " + d.total + "</span>"
+      + '<button type="button" class="ghost" id="visit-next"' + (visitPage >= pages ? " disabled" : "") + ">Next</button>"
+    : "";
+  const prev = document.getElementById("visit-prev");
+  const next = document.getElementById("visit-next");
+  if (prev) prev.onclick = () => { visitPage -= 1; loadVisits().catch(() => {}); };
+  if (next) next.onclick = () => { visitPage += 1; loadVisits().catch(() => {}); };
+}
+document.getElementById("visit-toggle").onclick = async () => {
+  const msg = document.getElementById("visit-msg");
+  try {
+    await api("/api/admin/visits/toggle", { body: { enabled: !visitOn } });
+    await loadVisits();
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e.message;
+  }
+};
 
 async function load() {
   const data = await api("/api/admin/data");
@@ -216,6 +275,9 @@ async function load() {
     ["otps", s.otps],
     ["staff", s.staff]
   ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
+  api("/api/admin/visits?size=1").then((v) => {
+    document.getElementById("stats").insertAdjacentHTML("afterbegin", `<button type="button" class="stat" data-section="visits"><b>${esc(v.total)}</b><span>Visitors · ${esc(v.today)} today</span></button>`);
+  }).catch(() => {});
   table(document.getElementById("users"), [
     { label: "Id", cell: (r) => esc(r.id) },
     { label: "Phone", cell: (r) => esc(r.phone) },
@@ -338,7 +400,9 @@ api("/api/admin/ready").then((d) => {
     document.getElementById("go").classList.add("hide");
   }
 }).catch(() => {});
-document.getElementById("refresh").onclick = () => load().catch((e) => alert(e.message));
+document.getElementById("refresh").onclick = () => load()
+  .then(() => { if (!document.querySelector('[data-panel="visits"]').classList.contains("hide")) return loadVisits(); })
+  .catch((e) => alert(e.message));
 const homeBanner = document.getElementById("home-banner");
 if (homeBanner) homeBanner.oninput = () => {
   const prev = document.getElementById("home-preview");

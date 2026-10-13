@@ -30,6 +30,7 @@
       <nav class="menu" id="menu">
         <button type="button" class="menu-item on" data-section="overview">Overview</button>
         <button type="button" class="menu-item" data-section="home">Home page</button>
+        <button type="button" class="menu-item" data-section="visits">Visitors</button>
         <button type="button" class="menu-item" data-section="users">Users</button>
         <button type="button" class="menu-item" data-section="listings">Listings</button>
         <button type="button" class="menu-item" data-section="need_requests">Need requests</button>
@@ -111,6 +112,20 @@
             <p id="home-msg" class="muted"></p>
             <button class="btn" type="button" id="home-save">Save home page</button>
           </div></div>
+        </section>
+        <section class="panel hide" data-panel="visits">
+          <div class="panel-head">
+            <h2>Visitors</h2>
+            <button class="ghost" type="button" id="visit-toggle">Turn off</button>
+          </div>
+          <p class="muted intro">Home page visits before login. Location is approximate, from the visitor’s network. No phone number or IP address is stored.</p>
+          <p id="visit-msg" class="muted"></p>
+          <div class="stats" id="visit-stats"></div>
+          <h3 class="sub-head">Top places</h3>
+          <div class="table-wrap"><table id="visit-places"></table></div>
+          <h3 class="sub-head">Recent visits</h3>
+          <div class="table-wrap"><table id="visits"></table></div>
+          <div class="pager" id="visit-pager"></div>
         </section>
         <section class="panel hide" data-panel="users">
           <h2>Users</h2>

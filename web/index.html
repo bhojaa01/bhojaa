@@ -81,11 +81,31 @@
     const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
       ? "http://localhost:4000"
       : "https://bhojaa-production.up.railway.app";
+    const geo = fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en")
+      .then((r) => r.json())
+      .catch(() => null);
+    geo.then((g) => {
+      if (!g) return;
+      fetch(API + "/api/visits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          page: "home",
+          country: g.countryName,
+          countryCode: g.countryCode,
+          state: g.principalSubdivision,
+          city: g.city,
+          locality: g.locality,
+          postcode: g.postcode,
+          lat: g.latitude,
+          lng: g.longitude,
+          source: g.lookupSource
+        })
+      }).catch(() => {});
+    });
     function placeOf() {
-      return fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en")
-        .then((r) => r.json())
-        .then((d) => d.city || d.locality || d.principalSubdivision || "")
-        .catch(() => "");
+      return geo.then((d) => (d && (d.city || d.locality || d.principalSubdivision)) || "");
     }
     Promise.all([
       fetch(API + "/api/home").then((r) => r.json()).catch(() => null),
