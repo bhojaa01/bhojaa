@@ -308,9 +308,9 @@ function paintNav() {
   }
   if (!nav) return;
   if (r === "giver") {
-    nav.innerHTML = `<a class="${page === "give" ? "on" : ""}" href="provider.html">Give</a><a class="${page === "mine" || page === "listing" || page === "order" ? "on" : ""}" href="mine.html">Mine</a><a class="${page === "profile" ? "on" : ""}" href="profile.html">Account</a>`;
+    nav.innerHTML = `<a class="${page === "give" ? "on" : ""}" href="provider.html">Give</a><a class="${page === "mine" || page === "listing" || page === "order" ? "on" : ""}" href="mine.html">Mine</a><a class="${page === "profile" ? "on" : ""}" href="profile.html">Account</a><a class="${page === "help" ? "on" : ""}" href="help.html">Help</a>`;
   } else {
-    nav.innerHTML = `<a class="${page === "nearby" || page === "listing" ? "on" : ""}" href="app.html">Nearby</a><a class="${page === "need" ? "on" : ""}" href="need.html">Need</a><a class="${page === "mine" || page === "order" ? "on" : ""}" href="mine.html">Mine</a><a class="${page === "profile" ? "on" : ""}" href="profile.html">Account</a>`;
+    nav.innerHTML = `<a class="${page === "nearby" || page === "listing" ? "on" : ""}" href="app.html">Nearby</a><a class="${page === "need" ? "on" : ""}" href="need.html">Need</a><a class="${page === "mine" || page === "order" ? "on" : ""}" href="mine.html">Mine</a><a class="${page === "profile" ? "on" : ""}" href="profile.html">Account</a><a class="${page === "help" ? "on" : ""}" href="help.html">Help</a>`;
   }
 }
 
@@ -1095,6 +1095,7 @@ async function pageOrder() {
           ${o.status === "requested" && o.mineGive ? '<button class="btn" id="ok" type="button">Accept request</button>' : ""}
           ${canReview ? '<button class="btn" id="rev" type="button">Submit review</button>' : ""}
         </p>
+        <a class="help-link" href="help.html?order=${encodeURIComponent(o.id)}">Need help with this pickup?</a>
         <a class="ghost back-wide" href="mine.html">← Back to requests</a>
       </div></div>`;
     const got = document.getElementById("got");
@@ -1205,6 +1206,14 @@ async function pageProfile() {
     msg.textContent = e.message;
     showEdit();
   }
+  SP.api("/api/support/unread").then((r) => {
+    const el = document.getElementById("help-new");
+    if (el && r.count) {
+      el.textContent = r.count + " new " + (r.count === 1 ? "reply" : "replies");
+      el.classList.remove("hide");
+      document.getElementById("help-row").href = "help.html?view=mine";
+    }
+  }).catch(() => {});
   document.getElementById("edit").onclick = () => showEdit();
   document.getElementById("cancel").onclick = () => showView(me);
   document.getElementById("gps").onclick = async () => {
@@ -1232,6 +1241,256 @@ async function pageProfile() {
   document.getElementById("out").onclick = () => SP.logout();
 }
 
+async function pageHelp() {
+  if (!requireAuth()) return;
+  paintNav();
+  const root = document.getElementById("root");
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const orderId = SP.qs("order") || "";
+  const me = SP.user() || {};
+  const firstName = String((me.profile && me.profile.name) || me.name || "").split(" ")[0];
+  const STATUS = { open: ["Waiting for reply", "st-pending"], answered: ["Answered", "st-collected"], closed: ["Closed", "st-closed"] };
+  const avatar = '<span class="chat-ava" aria-hidden="true"><img src="logo.svg" alt=""></span>';
+  const sendIco = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="currentColor"/></svg>';
+  let topics = [];
+  let tickets = [];
+  let tab = SP.qs("view") === "mine" ? "mine" : "ask";
+  let openId = "";
+  let onSend = null;
+  let poll = null;
+
+  root.innerHTML = `
+    <div class="chat">
+      <div class="chat-head">
+        <h1 class="page-title">Help</h1>
+        <div class="chat-tabs" role="tablist">
+          <button type="button" role="tab" data-tab="ask">Ask</button>
+          <button type="button" role="tab" data-tab="mine">My questions <span class="chat-dot hide" id="dot"></span></button>
+        </div>
+      </div>
+      <div class="chat-log" id="log" aria-live="polite"></div>
+      <div class="chat-chips" id="chips"></div>
+      <form class="chat-bar hide" id="bar">
+        <textarea id="msg" rows="1" maxlength="1000" placeholder="Type your message"></textarea>
+        <button type="submit" class="chat-send" id="send" aria-label="Send">${sendIco}</button>
+      </form>
+      <p class="err chat-err" id="err"></p>
+    </div>`;
+  const log = document.getElementById("log");
+  const chips = document.getElementById("chips");
+  const bar = document.getElementById("bar");
+  const box = document.getElementById("msg");
+  const err = document.getElementById("err");
+
+  const loadTickets = async () => { tickets = (await SP.api("/api/support/tickets")).tickets || []; paintDot(); };
+  const unread = () => tickets.reduce((n, t) => n + (t.unread || 0), 0);
+  function paintDot() {
+    const n = unread();
+    const dot = document.getElementById("dot");
+    dot.textContent = n || "";
+    dot.classList.toggle("hide", !n);
+  }
+  function setTab(next) {
+    tab = next;
+    root.querySelectorAll("[data-tab]").forEach((b) => {
+      const on = b.dataset.tab === tab || (tab === "thread" && b.dataset.tab === "mine");
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+  function scrollDown() {
+    requestAnimationFrame(() => {
+      const end = bar.classList.contains("hide") ? chips : bar;
+      end.scrollIntoView({ block: "end", behavior: calm ? "auto" : "smooth" });
+    });
+  }
+  function bubble(from, text, meta) {
+    const row = document.createElement("div");
+    row.className = "chat-row " + from;
+    row.innerHTML = (from === "bot" || from === "team" ? avatar : "")
+      + `<div class="chat-bub">${meta ? `<small>${esc(meta)}</small>` : ""}<p>${esc(text)}</p></div>`;
+    log.appendChild(row);
+    scrollDown();
+    return row;
+  }
+  async function bot(text) {
+    const row = document.createElement("div");
+    row.className = "chat-row bot";
+    row.innerHTML = avatar + '<div class="chat-bub typing" aria-label="Typing"><i></i><i></i><i></i></div>';
+    log.appendChild(row);
+    scrollDown();
+    await new Promise((r) => setTimeout(r, calm ? 0 : 550));
+    row.remove();
+    return bubble("bot", text);
+  }
+  function setChips(list) {
+    chips.innerHTML = list.map((c, i) => `<button type="button" class="chat-chip${c.kind ? " " + c.kind : ""}" data-chip="${i}">${esc(c.label)}</button>`).join("");
+    chips.querySelectorAll("[data-chip]").forEach((b) => {
+      b.onclick = () => { setChips([]); list[Number(b.dataset.chip)].run(); };
+    });
+    scrollDown();
+  }
+  function composer(on, placeholder, handler) {
+    bar.classList.toggle("hide", !on);
+    onSend = on ? handler : null;
+    err.textContent = "";
+    if (on) {
+      box.placeholder = placeholder || "Type your message";
+      box.focus();
+      scrollDown();
+    }
+  }
+  box.addEventListener("input", () => {
+    box.style.height = "auto";
+    box.style.height = Math.min(box.scrollHeight, 140) + "px";
+  });
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && window.matchMedia("(min-width: 860px)").matches) {
+      e.preventDefault();
+      bar.requestSubmit();
+    }
+  });
+  bar.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = box.value.trim();
+    if (!text || !onSend) return;
+    const btn = document.getElementById("send");
+    btn.disabled = true;
+    err.textContent = "";
+    try {
+      await onSend(text);
+      box.value = "";
+      box.style.height = "auto";
+    } catch (x) {
+      err.textContent = x.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // Ask: assistant flow
+  function topicChips() {
+    return topics.map((t) => ({ label: t.question, kind: t.isOther ? "other" : "", run: () => pick(t) }));
+  }
+  async function startAsk() {
+    setTab("ask");
+    openId = "";
+    log.innerHTML = "";
+    setChips([]);
+    composer(false);
+    await bot(`Hi${firstName && firstName !== "Neighbor" ? " " + firstName : ""}! What do you need help with?${orderId ? " I’ll attach order #" + orderId + " to anything you send." : ""}`);
+    setChips(topicChips());
+  }
+  async function pick(t) {
+    bubble("me", t.question);
+    if (t.isOther) return askDetails(t);
+    await bot(t.answer);
+    setChips([
+      { label: "That solved it", kind: "yes", run: () => solved(t) },
+      { label: "I still need help", run: () => { bubble("me", "I still need help"); askDetails(t); } }
+    ]);
+  }
+  async function solved(t) {
+    bubble("me", "That solved it");
+    SP.api("/api/support/topics/" + t.id + "/solved", { body: {} }).catch(() => {});
+    await bot("Glad that helped. Anything else?");
+    setChips(topicChips());
+  }
+  async function askDetails(t) {
+    await bot("Tell us what happened. The Bhojaa team will reply here, usually within a day.");
+    composer(true, "Describe the problem", async (text) => {
+      const sent = await SP.api("/api/support/tickets", { body: { topicId: t.id, message: text, orderId } });
+      bubble("me", text);
+      composer(false);
+      await loadTickets();
+      await bot("Sent to the Bhojaa team. You’ll find the reply under My questions.");
+      setChips([
+        { label: "Open this conversation", kind: "yes", run: () => showThread(sent.id) },
+        { label: "Ask something else", run: () => startAsk() }
+      ]);
+    });
+  }
+
+  // My questions: conversation list and threads
+  function showList() {
+    setTab("mine");
+    openId = "";
+    setChips([]);
+    composer(false);
+    log.innerHTML = tickets.length
+      ? `<div class="chat-list">${tickets.map((t) => {
+          const [label, cls] = STATUS[t.status] || [t.status, ""];
+          const last = (t.messages || [])[t.messages.length - 1] || {};
+          return `<button type="button" class="chat-item${t.unread ? " is-new" : ""}" data-open="${esc(t.id)}">
+            <span class="chat-item-top"><b>${esc(t.question)}</b><span class="st ${cls}">${label}</span></span>
+            <span class="chat-item-last">${last.from === "admin" ? "Bhojaa team: " : "You: "}${esc(last.text || "")}</span>
+            <span class="chat-item-meta">${esc(whenLine(t.updatedAt || t.createdAt))}${t.orderId ? " · Order #" + esc(t.orderId) : ""}${t.unread ? ` · <b>${t.unread} new</b>` : ""}</span>
+          </button>`;
+        }).join("")}</div>`
+      : '<div class="card"><div class="pad"><p class="muted">No questions yet. Start one from Ask.</p></div></div>';
+    log.querySelectorAll("[data-open]").forEach((b) => { b.onclick = () => showThread(b.dataset.open); });
+    window.scrollTo(0, 0);
+  }
+  function showThread(id) {
+    const t = tickets.find((x) => x.id === id);
+    if (!t) return showList();
+    setTab("thread");
+    openId = id;
+    setChips([]);
+    const [label, cls] = STATUS[t.status] || [t.status, ""];
+    log.innerHTML = `
+      <div class="chat-thread-head">
+        <button type="button" class="link-btn" id="back">← All questions</button>
+        <div><b>${esc(t.question)}</b> <span class="st ${cls}">${label}</span></div>
+        ${t.orderId ? `<span class="muted">Order #${esc(t.orderId)}${t.orderLabel ? " · " + esc(t.orderLabel) : ""}</span>` : ""}
+      </div>`;
+    document.getElementById("back").onclick = showList;
+    (t.messages || []).forEach((m) => bubble(m.from === "admin" ? "team" : "me", m.text, (m.from === "admin" ? "Bhojaa team · " : "") + whenLine(m.at)));
+    if (t.status === "open") bubble("bot", "Waiting for the Bhojaa team to reply.");
+    if (t.status === "closed") {
+      bubble("bot", "This conversation is closed. Start a new one from Ask if you still need help.");
+      composer(false);
+    } else {
+      composer(true, "Add a message", async (text) => {
+        await SP.api("/api/support/tickets/" + id + "/reply", { body: { message: text } });
+        await loadTickets();
+        showThread(id);
+      });
+    }
+    if (t.unread) {
+      t.unread = 0;
+      paintDot();
+      SP.api("/api/support/seen", { body: {} }).catch(() => {});
+    }
+  }
+
+  root.querySelectorAll("[data-tab]").forEach((b) => {
+    b.onclick = () => {
+      if (b.dataset.tab === "ask") startAsk();
+      else loadTickets().then(showList).catch(() => showList());
+    };
+  });
+  poll = setInterval(async () => {
+    if (document.hidden || tab === "ask") return;
+    const before = JSON.stringify(tickets.map((t) => [t.id, t.messages.length, t.status]));
+    try { await loadTickets(); } catch { return; }
+    if (JSON.stringify(tickets.map((t) => [t.id, t.messages.length, t.status])) === before) return;
+    if (tab === "thread" && openId && !box.value) showThread(openId);
+    else if (tab === "mine") showList();
+  }, 20000);
+  window.addEventListener("pagehide", () => clearInterval(poll));
+
+  try {
+    const [t] = await Promise.all([SP.api("/api/support/topics"), loadTickets()]);
+    topics = t.topics || [];
+    if (tab === "mine") showList();
+    else startAsk();
+  } catch (e) {
+    log.innerHTML = `<p class="err">${esc(e.message)}</p>`;
+  }
+}
+
 const pages = {
   login: pageLogin,
   role: pageRole,
@@ -1241,7 +1500,8 @@ const pages = {
   give: pageGive,
   mine: pageMine,
   order: pageOrder,
-  profile: pageProfile
+  profile: pageProfile,
+  help: pageHelp
 };
 const page = document.body.dataset.page;
 if (page && pages[page]) pages[page]();

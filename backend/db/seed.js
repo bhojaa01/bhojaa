@@ -3,6 +3,7 @@ const Food = require("../models/food.model");
 const catalog = require("./catalog");
 const home = require("../services/home.service");
 const Partner = require("../models/partner.model");
+const support = require("../services/support.service");
 
 let done = false;
 
@@ -27,6 +28,7 @@ module.exports = function seed() {
   done = true;
   seedCatalog();
   home.ensure();
+  support.ensure();
   seedPartners();
 };
 

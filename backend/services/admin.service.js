@@ -2,6 +2,7 @@ const db = require("../db");
 const config = require("../config");
 const { User, Listing, NeedRequest, Order, Review, Report, Category, Otp, Token, Admin, Partner } = require("../models");
 const geo = require("./geo.service");
+const support = require("./support.service");
 
 function slugOf(name) {
   return String(name || "").toLowerCase().trim().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -24,6 +25,7 @@ function data() {
       orders: Order.all().length,
       reviews: Review.all().length,
       reports: Report.all().length,
+      support: support.openCount(),
       categories: Category.all().length,
       otps: Otp.all().length,
       staff: Admin.size(),

@@ -31,6 +31,8 @@
         <button type="button" class="menu-item on" data-section="overview">Overview</button>
         <button type="button" class="menu-item" data-section="home">Home page</button>
         <button type="button" class="menu-item" data-section="visits">Visitors</button>
+        <button type="button" class="menu-item" data-section="support">Support inbox</button>
+        <button type="button" class="menu-item" data-section="support_topics">Support questions</button>
         <button type="button" class="menu-item" data-section="users">Users</button>
         <button type="button" class="menu-item" data-section="listings">Listings</button>
         <button type="button" class="menu-item" data-section="need_requests">Need requests</button>
@@ -126,6 +128,44 @@
           <h3 class="sub-head">Recent visits</h3>
           <div class="table-wrap"><table id="visits"></table></div>
           <div class="pager" id="visit-pager"></div>
+        </section>
+        <section class="panel hide" data-panel="support">
+          <h2>Support inbox</h2>
+          <p class="muted intro">Questions from logged-in users. Your reply shows in the app under Help &amp; support → My questions.</p>
+          <div class="chips" id="sup-filter"></div>
+          <div class="card hide sup-detail" id="sup-detail"><div class="pad" id="sup-detail-body"></div></div>
+          <div class="table-wrap"><table id="sup-tickets"></table></div>
+          <div class="pager" id="sup-pager"></div>
+        </section>
+        <section class="panel hide" data-panel="support_topics">
+          <div class="panel-head">
+            <h2>Support questions</h2>
+            <button class="btn" type="button" id="sq-open">Add question</button>
+          </div>
+          <p class="muted intro">Shown in the app under Help &amp; support. Users read the answer first, then can send their own question. “Something else” is always last.</p>
+          <div class="card hide" id="sq-form" style="margin-bottom:14px"><div class="pad">
+            <input type="hidden" id="sq-id">
+            <label for="sq-group">Topic</label>
+            <input id="sq-group" placeholder="Pickups">
+            <label for="sq-question">Question</label>
+            <input id="sq-question" maxlength="160" placeholder="The giver hasn’t accepted my request">
+            <div id="sq-answer-wrap">
+              <label for="sq-answer">Answer</label>
+              <textarea id="sq-answer" rows="4" maxlength="1000" placeholder="Short, practical answer"></textarea>
+              <label for="sq-audience">Shown to</label>
+              <select id="sq-audience">
+                <option value="all">Everyone</option>
+                <option value="seeker">Seekers (Need)</option>
+                <option value="giver">Givers (Give)</option>
+              </select>
+            </div>
+            <p id="sq-msg" class="muted"></p>
+            <p class="row" style="margin-top:8px">
+              <button class="btn" type="button" id="sq-save">Save</button>
+              <button class="ghost" type="button" id="sq-cancel">Cancel</button>
+            </p>
+          </div></div>
+          <div class="table-wrap"><table id="sq-table"></table></div>
         </section>
         <section class="panel hide" data-panel="users">
           <h2>Users</h2>

@@ -4,8 +4,9 @@ const need = require("./need.routes");
 const order = require("./order.routes");
 const admin = require("./admin.routes");
 const extra = require("./report.routes");
+const support = require("./support.routes");
 
-const routers = [auth, listing, need, order, admin, extra];
+const routers = [auth, listing, need, order, admin, extra, support];
 
 async function handle(req, res) {
   for (const router of routers) {

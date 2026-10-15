@@ -78,3 +78,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media (max-width:420px){
   .top .brand{display:none}
 }
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 14px;font-weight:700;color:var(--soft);cursor:pointer;font-variant-numeric:tabular-nums}
+.chip.on{background:var(--forest);border-color:var(--forest);color:#fff}
+.sup-detail{margin-bottom:14px}
+.sup-detail h3{color:var(--forest);font-size:1.1rem;margin:0}
+.sup-detail .panel-head{align-items:flex-start}
+.sup-thread{display:grid;gap:8px;margin:4px 0 8px;max-width:70ch}
+.sup-msg{background:var(--bg);border-radius:12px;padding:10px 12px}
+.sup-msg.from-team{background:#eef6ef;border-left:3px solid var(--forest)}
+.sup-msg small{display:block;font-size:.72rem;font-weight:700;color:var(--soft);margin-bottom:2px}
+.sup-msg p{white-space:pre-line}
+.clip{display:inline-block;max-width:28ch;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.badge.muted-badge{background:#efe8dc;color:var(--soft)}
+.icon-btn{padding:4px 10px}
+.icon-btn[disabled]{opacity:.35;cursor:default}
+.ghost.danger{border-color:var(--tomato);color:var(--tomato)}

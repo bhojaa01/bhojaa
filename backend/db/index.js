@@ -15,7 +15,9 @@ const db = {
   foods: new Collection("foods", "FD"),
   settings: new Collection("settings", "SET"),
   partners: new Collection("partners", "PTR"),
-  admins: new Collection("admins", "ADM")
+  admins: new Collection("admins", "ADM"),
+  support_topics: new Collection("support_topics", "SQ"),
+  support_tickets: new Collection("support_tickets", "SUP")
 };
 
 db.users.createIndex({ location: "2dsphere" });
@@ -56,7 +58,9 @@ db.loadFromAtlas = async function () {
     db.settings.loadFromAtlas(),
     db.partners.loadFromAtlas(),
     db.otps.loadFromAtlas(),
-    db.admins.loadFromAtlas()
+    db.admins.loadFromAtlas(),
+    db.support_topics.loadFromAtlas(),
+    db.support_tickets.loadFromAtlas()
   ]);
 };
 

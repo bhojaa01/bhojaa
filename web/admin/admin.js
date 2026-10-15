@@ -11,6 +11,8 @@ const LABELS = {
   reports: "Reports",
   home: "Home page",
   visits: "Visitors",
+  support: "Open support",
+  support_topics: "Support questions",
   categories: "Categories",
   partners: "Partners",
   otps: "OTPs",
@@ -201,7 +203,166 @@ function showSection(name) {
   document.querySelectorAll(".menu-item").forEach((b) => b.classList.toggle("on", b.dataset.section === name));
   document.querySelectorAll("[data-panel]").forEach((p) => p.classList.toggle("hide", p.dataset.panel !== name));
   if (name === "visits") loadVisits().catch(() => {});
+  if (name === "support") loadSupport().catch(() => {});
+  if (name === "support_topics") loadTopics().catch(() => {});
 }
+
+let supStatus = "open";
+let supPage = 1;
+let supOpenId = "";
+let supRows = [];
+const AUD = { all: "Everyone", seeker: "Seekers", giver: "Givers" };
+const SUP_LABEL = { open: "Open", answered: "Answered", closed: "Closed", all: "All" };
+
+function supBadge(s) {
+  return '<span class="badge ' + (s === "open" ? "warn" : s === "closed" ? "muted-badge" : "") + '">' + esc(SUP_LABEL[s] || s) + "</span>";
+}
+async function loadSupport() {
+  const d = await api("/api/admin/support/tickets?status=" + supStatus + "&page=" + supPage + "&size=20");
+  supRows = d.tickets;
+  document.getElementById("sup-filter").innerHTML = ["open", "answered", "closed", "all"].map((s) =>
+    `<button type="button" class="chip${s === supStatus ? " on" : ""}" data-sup-status="${s}">${SUP_LABEL[s]} · ${esc(d.counts[s])}</button>`).join("");
+  table(document.getElementById("sup-tickets"), [
+    { label: "Ticket", cell: (r) => esc(r.id) },
+    { label: "Updated", cell: (r) => esc(when(r.updatedAt || r.createdAt)) },
+    { label: "User", cell: (r) => esc((r.name ? r.name + " · " : "") + r.phone) },
+    { label: "Role", cell: (r) => badge(r.role === "giver" ? "Giver" : r.role === "seeker" ? "Seeker" : "User") },
+    { label: "Question", cell: (r) => esc(r.question) },
+    { label: "Last message", cell: (r) => { const m = r.messages[r.messages.length - 1] || {}; return '<span class="clip">' + esc((m.from === "admin" ? "You: " : "") + (m.text || "")) + "</span>"; } },
+    { label: "Order", cell: (r) => esc(r.orderId || "—") },
+    { label: "Status", cell: (r) => supBadge(r.status) },
+    { label: "", cell: (r) => '<button type="button" class="ghost" data-sup-open="' + esc(r.id) + '">Open</button>' }
+  ], supRows);
+  const pager = document.getElementById("sup-pager");
+  pager.innerHTML = d.total > 20
+    ? '<button type="button" class="ghost" id="sup-prev"' + (d.page <= 1 ? " disabled" : "") + ">Prev</button><span>Page " + d.page + " of " + d.pages + " · " + d.total + "</span>"
+      + '<button type="button" class="ghost" id="sup-next"' + (d.page >= d.pages ? " disabled" : "") + ">Next</button>"
+    : "";
+  const prev = document.getElementById("sup-prev");
+  const next = document.getElementById("sup-next");
+  if (prev) prev.onclick = () => { supPage -= 1; loadSupport().catch(() => {}); };
+  if (next) next.onclick = () => { supPage += 1; loadSupport().catch(() => {}); };
+  const still = supRows.find((r) => r.id === supOpenId);
+  if (still) showTicket(still);
+}
+function showTicket(r) {
+  supOpenId = r.id;
+  const box = document.getElementById("sup-detail");
+  box.classList.remove("hide");
+  document.getElementById("sup-detail-body").innerHTML = `
+    <div class="panel-head">
+      <div><h3>${esc(r.question)}</h3><p class="muted">${esc(r.id)} · ${esc((r.name ? r.name + " · " : "") + r.phone)} · ${esc(r.role || "user")}${r.orderId ? " · Order " + esc(r.orderId) + (r.orderLabel ? " (" + esc(r.orderLabel) + ")" : "") : ""}</p></div>
+      ${supBadge(r.status)}
+    </div>
+    <div class="sup-thread">${r.messages.map((m) => `<div class="sup-msg ${m.from === "admin" ? "from-team" : ""}"><small>${m.from === "admin" ? "Bhojaa team" : "User"} · ${esc(when(m.at))}</small><p>${esc(m.text)}</p></div>`).join("")}</div>
+    <label for="sup-reply">Reply</label>
+    <textarea id="sup-reply" rows="3" maxlength="1000" placeholder="Write a reply. The user sees it in the app."></textarea>
+    <p id="sup-msg" class="err"></p>
+    <p class="row">
+      <button class="btn" type="button" id="sup-send">Send reply</button>
+      ${r.status === "closed"
+        ? '<button class="ghost" type="button" data-sup-set="open">Reopen</button>'
+        : '<button class="ghost" type="button" data-sup-set="closed">Close</button>'}
+      <button class="ghost" type="button" id="sup-hide">Hide</button>
+    </p>`;
+  document.getElementById("sup-send").onclick = async () => {
+    const msg = document.getElementById("sup-msg");
+    msg.textContent = "";
+    try {
+      await api("/api/admin/support/tickets/" + r.id + "/reply", { body: { message: document.getElementById("sup-reply").value } });
+      await loadSupport();
+    } catch (e) { msg.textContent = e.message; }
+  };
+  document.querySelectorAll("[data-sup-set]").forEach((b) => {
+    b.onclick = async () => {
+      try {
+        await api("/api/admin/support/tickets/" + r.id + "/status", { body: { status: b.dataset.supSet } });
+        await loadSupport();
+      } catch (e) { document.getElementById("sup-msg").textContent = e.message; }
+    };
+  });
+  document.getElementById("sup-hide").onclick = () => { supOpenId = ""; box.classList.add("hide"); };
+}
+document.getElementById("sup-filter").onclick = (e) => {
+  const b = e.target.closest("[data-sup-status]");
+  if (!b) return;
+  supStatus = b.dataset.supStatus;
+  supPage = 1;
+  loadSupport().catch(() => {});
+};
+document.getElementById("sup-tickets").onclick = (e) => {
+  const b = e.target.closest("[data-sup-open]");
+  if (!b) return;
+  const r = supRows.find((x) => x.id === b.dataset.supOpen);
+  if (r) { showTicket(r); document.getElementById("sup-detail").scrollIntoView({ behavior: "smooth", block: "start" }); }
+};
+
+let topicRows = [];
+function showTopicForm(on, r) {
+  const form = document.getElementById("sq-form");
+  form.classList.toggle("hide", !on);
+  if (!on) return;
+  document.getElementById("sq-id").value = r ? r.id : "";
+  document.getElementById("sq-group").value = r ? r.group || "" : "";
+  document.getElementById("sq-question").value = r ? r.question : "";
+  document.getElementById("sq-answer").value = r ? r.answer || "" : "";
+  document.getElementById("sq-audience").value = r ? r.audience || "all" : "all";
+  document.getElementById("sq-answer-wrap").classList.toggle("hide", !!(r && r.isOther));
+  const msg = document.getElementById("sq-msg");
+  msg.className = "muted";
+  msg.textContent = r && r.isOther ? "This opens the message box directly, so it has no answer." : "";
+  document.getElementById("sq-question").focus();
+}
+async function loadTopics() {
+  topicRows = (await api("/api/admin/support/topics")).topics;
+  const last = topicRows.filter((t) => !t.isOther).length - 1;
+  let i = -1;
+  table(document.getElementById("sq-table"), [
+    { label: "Order", cell: (r) => { if (r.isOther) return '<span class="muted">Last</span>'; i += 1;
+      return '<button type="button" class="ghost icon-btn" aria-label="Move up" data-sq-move="up" data-id="' + esc(r.id) + '"' + (i === 0 ? " disabled" : "") + ">↑</button> "
+        + '<button type="button" class="ghost icon-btn" aria-label="Move down" data-sq-move="down" data-id="' + esc(r.id) + '"' + (i === last ? " disabled" : "") + ">↓</button>"; } },
+    { label: "Topic", cell: (r) => esc(r.group || "—") },
+    { label: "Question", cell: (r) => esc(r.question) },
+    { label: "Shown to", cell: (r) => esc(AUD[r.audience] || r.audience) },
+    { label: "Status", cell: (r) => badge(r.enabled ? "on" : "off") },
+    { label: "Solved", cell: (r) => r.isOther ? "—" : esc(r.solvedCount) },
+    { label: "", cell: (r) => '<button type="button" class="ghost" data-sq-edit="' + esc(r.id) + '">Edit</button>'
+      + (r.isOther ? "" : ' <button type="button" class="ghost" data-sq-toggle="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Hide" : "Show") + "</button>"
+      + ' <button type="button" class="ghost" data-sq-del="' + esc(r.id) + '">Delete</button>') }
+  ], topicRows);
+}
+document.getElementById("sq-open").onclick = () => showTopicForm(true);
+document.getElementById("sq-cancel").onclick = () => showTopicForm(false);
+document.getElementById("sq-save").onclick = async () => {
+  const id = document.getElementById("sq-id").value;
+  const msg = document.getElementById("sq-msg");
+  try {
+    await api(id ? "/api/admin/support/topics/" + id : "/api/admin/support/topics", { body: {
+      group: document.getElementById("sq-group").value,
+      question: document.getElementById("sq-question").value,
+      answer: document.getElementById("sq-answer").value,
+      audience: document.getElementById("sq-audience").value
+    } });
+    showTopicForm(false);
+    await loadTopics();
+  } catch (e) { msg.className = "err"; msg.textContent = e.message; }
+};
+document.getElementById("sq-table").onclick = async (e) => {
+  const edit = e.target.closest("[data-sq-edit]");
+  const tog = e.target.closest("[data-sq-toggle]");
+  const del = e.target.closest("[data-sq-del]");
+  const move = e.target.closest("[data-sq-move]");
+  try {
+    if (edit) { showTopicForm(true, topicRows.find((t) => t.id === edit.dataset.sqEdit)); return; }
+    if (tog) await api("/api/admin/support/topics/" + tog.dataset.sqToggle + "/toggle", { body: { enabled: tog.dataset.on === "1" } });
+    if (move) await api("/api/admin/support/topics/" + move.dataset.id + "/move", { body: { dir: move.dataset.sqMove } });
+    if (del) {
+      if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "Confirm delete"; del.classList.add("danger"); return; }
+      await api("/api/admin/support/topics/" + del.dataset.sqDel + "/delete", { body: {} });
+    }
+    if (tog || move || del) await loadTopics();
+  } catch (err) { alert(err.message); }
+};
 
 let visitPage = 1;
 let visitOn = true;
@@ -267,6 +428,7 @@ async function load() {
   const data = await api("/api/admin/data");
   const s = data.stats;
   document.getElementById("stats").innerHTML = [
+    ["support", s.support],
     ["users", s.users],
     ["listings", s.listings],
     ["need_requests", s.need_requests],
@@ -404,7 +566,12 @@ api("/api/admin/ready").then((d) => {
   }
 }).catch(() => {});
 document.getElementById("refresh").onclick = () => load()
-  .then(() => { if (!document.querySelector('[data-panel="visits"]').classList.contains("hide")) return loadVisits(); })
+  .then(() => {
+    const on = (n) => !document.querySelector('[data-panel="' + n + '"]').classList.contains("hide");
+    if (on("visits")) return loadVisits();
+    if (on("support")) return loadSupport();
+    if (on("support_topics")) return loadTopics();
+  })
   .catch((e) => alert(e.message));
 const homeBanner = document.getElementById("home-banner");
 if (homeBanner) homeBanner.oninput = () => {
