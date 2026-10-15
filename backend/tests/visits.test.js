@@ -48,7 +48,7 @@ async function adminToken() {
 
 const place = {
   page: "home", country: "India", countryCode: "in", state: "Karnataka", city: "Bengaluru",
-  locality: "Koramangala", postcode: "560034", lat: 12.935212345, lng: 77.624512345, source: "ip geolocation",
+  locality: "Koramangala", postcode: "560034", lat: 12.935212345, lng: 77.624512345, accuracy: 18.6, source: "gps",
   phone: "9876543210"
 };
 
@@ -67,6 +67,8 @@ test("home visit stores location only and admin can list it", async () => {
   assert.equal(row.lat, 12.9352);
   assert.equal(row.lng, 77.6245);
   assert.equal(row.device, "mobile");
+  assert.equal(row.source, "gps");
+  assert.equal(row.accuracy, 19);
   assert.equal(row.phone, undefined);
   assert.equal(row.ip, undefined);
   assert.ok(list.data.total >= 1);

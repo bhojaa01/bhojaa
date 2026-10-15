@@ -84,7 +84,26 @@
     const geo = fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en")
       .then((r) => r.json())
       .catch(() => null);
-    geo.then((g) => {
+    function areaOf(g) {
+      const skip = [g.city, g.principalSubdivision, g.countryName];
+      const adm = ((g.localityInfo || {}).administrative || [])
+        .slice()
+        .sort((a, b) => (b.adminLevel || 0) - (a.adminLevel || 0));
+      return (adm.map((a) => a && a.name).find((n) => n && !skip.includes(n))) || g.locality || "";
+    }
+    function gps() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition((p) => {
+          const pos = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy, lookupSource: "gps" };
+          fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + pos.latitude + "&longitude=" + pos.longitude + "&localityLanguage=en")
+            .then((r) => r.json())
+            .then((g) => resolve({ ...g, ...pos, locality: areaOf(g) }))
+            .catch(() => resolve(pos));
+        }, () => resolve(null), { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true });
+      });
+    }
+    gps().then((g) => g || geo).then((g) => {
       if (!g) return;
       fetch(API + "/api/visits", {
         method: "POST",
@@ -100,7 +119,8 @@
           postcode: g.postcode,
           lat: g.latitude,
           lng: g.longitude,
-          source: g.lookupSource
+          accuracy: g.accuracy,
+          source: g.lookupSource === "gps" ? "gps" : "network"
         })
       }).catch(() => {});
     });

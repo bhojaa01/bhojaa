@@ -234,6 +234,9 @@ async function loadVisits() {
     { label: "Postcode", cell: (r) => esc(r.postcode) },
     { label: "Lat", cell: (r) => esc(r.lat) },
     { label: "Long", cell: (r) => esc(r.lng) },
+    { label: "Source", cell: (r) => r.source === "gps"
+      ? '<span class="badge">GPS' + (r.accuracy != null ? " ±" + esc(r.accuracy) + " m" : "") + "</span>"
+      : '<span class="badge warn">Network</span>' },
     { label: "Device", cell: (r) => esc(r.device) },
     { label: "Page", cell: (r) => esc(r.page) }
   ], d.rows);

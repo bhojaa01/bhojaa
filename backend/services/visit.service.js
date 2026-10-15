@@ -63,6 +63,7 @@ async function record(body, headers) {
     lat,
     lng,
     location: lat != null && lng != null ? { type: "Point", coordinates: [lng, lat] } : null,
+    accuracy: Number.isFinite(Number(b.accuracy)) && b.accuracy !== null && b.accuracy !== "" ? Math.min(100000, Math.max(0, Math.round(Number(b.accuracy)))) : null,
     source: text(b.source, 30),
     device: deviceOf(headers && headers["user-agent"]),
     createdAt: new Date()
@@ -82,7 +83,7 @@ function view(r) {
   return {
     id: String(r._id || ""),
     page: r.page, country: r.country, countryCode: r.countryCode, state: r.state, city: r.city,
-    locality: r.locality, postcode: r.postcode, lat: r.lat, lng: r.lng,
+    locality: r.locality, postcode: r.postcode, lat: r.lat, lng: r.lng, accuracy: r.accuracy == null ? null : r.accuracy,
     source: r.source, device: r.device, createdAt: r.createdAt
   };
 }
