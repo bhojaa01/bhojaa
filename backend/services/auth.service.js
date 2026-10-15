@@ -1,6 +1,6 @@
 const config = require("../config");
 const { User, Otp, Token, Admin } = require("../models");
-const { phoneOf } = require("../utils/http");
+const { phoneOf, phoneError } = require("../utils/http");
 const notify = require("./notify.service");
 
 function makeCode() {
@@ -9,7 +9,7 @@ function makeCode() {
 
 async function sendOtp(rawPhone) {
   const phone = phoneOf(rawPhone);
-  if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
+  if (phoneError(phone)) throw Object.assign(new Error(phoneError(phone)), { status: 400 });
   const wait = Otp.resendWait(phone);
   if (wait > 0) {
     const err = new Error("Wait " + wait + "s to resend OTP");
@@ -30,7 +30,7 @@ async function sendOtp(rawPhone) {
 
 async function login(rawPhone, otp, extra) {
   const phone = phoneOf(rawPhone);
-  if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
+  if (phoneError(phone)) throw Object.assign(new Error(phoneError(phone)), { status: 400 });
   const row = Otp.take(phone);
   if (!row) throw Object.assign(new Error("OTP expired. Continue again"), { status: 400 });
   if (String(otp || "") !== row.code) throw Object.assign(new Error("Wrong OTP"), { status: 401 });
@@ -68,7 +68,7 @@ async function profile(user) {
 async function updateProfile(user, body) {
   if (body.phone != null && body.phone !== "") {
     const phone = phoneOf(body.phone);
-    if (phone.length !== 10) throw Object.assign(new Error("Enter a 10-digit phone"), { status: 400 });
+    if (phoneError(phone)) throw Object.assign(new Error(phoneError(phone)), { status: 400 });
     const taken = User.findByPhone(phone);
     if (taken && taken._id !== user._id) throw Object.assign(new Error("Phone already in use"), { status: 400 });
     user.phone = phone;

@@ -359,10 +359,23 @@ async function pageLogin() {
       } else timer.textContent = "Resend OTP in " + left + "s";
     }, 1000);
   }
+  function phoneError(v) {
+    if (v && !/^[6-9]/.test(v)) return "Mobile numbers start with 6, 7, 8 or 9. Check the number and try again.";
+    if (v.length !== 10) return "Enter a 10-digit mobile number.";
+    if (/^(\d)\1{9}$/.test(v)) return "That doesn’t look like a real mobile number. Check it and try again.";
+    return "";
+  }
+  function showPhoneError(text) {
+    phone.classList.toggle("field-err", !!text);
+    phone.setAttribute("aria-invalid", text ? "true" : "false");
+    msg.className = text ? "err" : "muted";
+    msg.textContent = text;
+  }
   async function requestOtp() {
-    if (phone.value.length !== 10) {
-      msg.className = "err";
-      msg.textContent = "Enter a 10-digit phone";
+    const bad = phoneError(phone.value);
+    if (bad) {
+      showPhoneError(bad);
+      phone.focus();
       return false;
     }
     msg.className = "muted";
@@ -383,7 +396,12 @@ async function pageLogin() {
     }
   }
   phone.addEventListener("input", () => {
-    phone.value = phone.value.replace(/\D/g, "").slice(0, 10);
+    let d = phone.value.replace(/\D/g, "");
+    if (d.length > 10 && d.startsWith("91")) d = d.slice(2);
+    else if (d.length > 10 && d.startsWith("0")) d = d.slice(1);
+    phone.value = d.slice(0, 10);
+    const early = phone.value.length && !/^[6-9]/.test(phone.value);
+    showPhoneError(early || phone.value.length === 10 ? phoneError(phone.value) : "");
     if (step === "otp") {
       step = "phone";
       box.classList.add("hide");

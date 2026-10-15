@@ -13,7 +13,7 @@
     <p class="muted">Enter your 10-digit mobile number. We’ll send an OTP.</p>
     <div class="card"><div class="pad">
       <label>Phone</label>
-      <input id="phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="9876543210">
+      <input id="phone" type="tel" inputmode="numeric" maxlength="16" pattern="[6-9][0-9]{9}" autocomplete="tel-national" placeholder="9876543210">
       <p class="muted">Used only to connect you with the giver — never shown publicly until you accept.</p>
       <div id="otp-box" class="hide">
         <label>OTP</label>

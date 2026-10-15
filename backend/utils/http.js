@@ -40,7 +40,18 @@ function tokenOf(req) {
 }
 
 function phoneOf(v) {
-  return String(v || "").replace(/\D/g, "");
+  let d = String(v || "").replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
+  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  return d;
 }
 
-module.exports = { json, readBody, tokenOf, phoneOf, cors };
+// Indian mobile numbers: 10 digits starting with 6-9.
+function phoneError(phone) {
+  if (phone && !/^[6-9]/.test(phone)) return "Mobile numbers start with 6, 7, 8 or 9. Check the number and try again.";
+  if (phone.length !== 10) return "Enter a 10-digit mobile number.";
+  if (/^(\d)\1{9}$/.test(phone)) return "That doesn’t look like a real mobile number. Check it and try again.";
+  return "";
+}
+
+module.exports = { json, readBody, tokenOf, phoneOf, phoneError, cors };

@@ -360,3 +360,4 @@ input[readonly]{background:#f3eee4;color:var(--soft)}
 @media(prefers-reduced-motion:reduce){
   .chat-row,.chat-bub.typing i{animation:none}
 }
+.field-err{border-color:var(--tomato)!important;background:#fff8f5}
