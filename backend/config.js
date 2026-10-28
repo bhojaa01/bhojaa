@@ -13,6 +13,7 @@ module.exports = {
   kapsoPhoneId: process.env.KAPSO_PHONE_NUMBER_ID || "",
   kapsoTemplate: process.env.KAPSO_OTP_TEMPLATE || "",
   kapsoLang: process.env.KAPSO_OTP_LANG || "en",
+  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   adminUser: process.env.ADMIN_USER || "admin",
   adminPass: process.env.ADMIN_PASS || "1234",
   defaultLocation: { lat: 12.9352, lng: 77.6245 },

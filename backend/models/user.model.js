@@ -7,7 +7,9 @@ function create(data) {
   const lng = data.lng ?? config.defaultLocation.lng;
   const lat = data.lat ?? config.defaultLocation.lat;
   return db.users.insertOne({
-    phone: data.phone,
+    phone: data.phone || "",
+    email: data.email || "",
+    googleId: data.googleId || "",
     profile: { name: data.name || "Neighbor" },
     location: data.location || point(lng, lat),
     address: data.address || "",
@@ -26,7 +28,18 @@ function findById(id) {
 }
 
 function findByPhone(phone) {
+  if (!phone) return null;
   return db.users.findOne({ phone }) || null;
+}
+
+function findByGoogle(googleId) {
+  if (!googleId) return null;
+  return db.users.findOne({ googleId }) || null;
+}
+
+function findByEmail(email) {
+  if (!email) return null;
+  return db.users.findOne({ email }) || null;
 }
 
 function ensure(phone) {
@@ -77,6 +90,7 @@ function dump(u) {
   return {
     id: u._id,
     phone: u.phone,
+    email: u.email || "",
     profile: u.profile,
     role: u.role,
     roles: u.roles || [],
@@ -144,4 +158,4 @@ function save(user) {
   return db.users.save(user);
 }
 
-module.exports = { create, findById, findByPhone, ensure, setLocation, coords, dump, all, size, save, setToken, setRoleToken, clearToken, clearRoleToken, hasToken, tokensOf };
+module.exports = { create, findById, findByPhone, findByGoogle, findByEmail, ensure, setLocation, coords, dump, all, size, save, setToken, setRoleToken, clearToken, clearRoleToken, hasToken, tokensOf };

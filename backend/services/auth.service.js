@@ -42,17 +42,63 @@ async function login(rawPhone, otp, extra) {
   if (Number.isFinite(lat) && Number.isFinite(lng)) {
     await User.setLocation(user, lng, lat, extra);
   }
+  return finishLogin(user);
+}
+
+async function finishLogin(user) {
   User.save(user);
   const token = Token.createUser(user, { role: "user" });
   User.setToken(user, token);
   return { token, user: await profile(user) };
 }
 
+function authConfig() {
+  return { googleClientId: config.googleClientId };
+}
+
+// Checks a Google Identity Services ID token with Google and returns its claims.
+async function verifyGoogle(credential) {
+  if (!config.googleClientId) throw Object.assign(new Error("Google sign-in is not set up"), { status: 503 });
+  if (!credential) throw Object.assign(new Error("Google sign-in failed. Try again"), { status: 400 });
+  let claims;
+  try {
+    const r = await fetch("https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(credential));
+    if (!r.ok) throw new Error("bad token");
+    claims = await r.json();
+  } catch {
+    throw Object.assign(new Error("Google sign-in failed. Try again"), { status: 401 });
+  }
+  const issOk = claims.iss === "accounts.google.com" || claims.iss === "https://accounts.google.com";
+  const fresh = Number(claims.exp) * 1000 > Date.now();
+  const verified = claims.email_verified === true || claims.email_verified === "true";
+  if (claims.aud !== config.googleClientId || !issOk || !fresh || !claims.sub || !claims.email || !verified) {
+    throw Object.assign(new Error("Google sign-in failed. Try again"), { status: 401 });
+  }
+  return claims;
+}
+
+async function googleLogin(credential, extra) {
+  const g = await verifyGoogle(credential);
+  const email = String(g.email).trim().toLowerCase();
+  let user = User.findByGoogle(g.sub) || User.findByEmail(email);
+  if (!user) user = User.create({ email, googleId: g.sub, name: g.name || g.given_name || "" });
+  user.googleId = g.sub;
+  user.email = email;
+  if (g.name && (!user.profile.name || user.profile.name === "Neighbor")) user.profile.name = String(g.name).trim();
+  const lat = Number(extra.lat);
+  const lng = Number(extra.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    await User.setLocation(user, lng, lat, extra);
+  }
+  return finishLogin(user);
+}
+
 async function profile(user) {
   const p = User.coords(user);
   if (Number.isFinite(p.lat) && Number.isFinite(p.lng)) await User.setLocation(user, p.lng, p.lat);
   return {
-    phone: user.phone,
+    phone: user.phone || "",
+    email: user.email || "",
     name: user.profile.name,
     address: user.address,
     city: user.city || "",
@@ -139,4 +185,4 @@ function adminList() {
   return Admin.all().map(Admin.dump);
 }
 
-module.exports = { sendOtp, login, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };

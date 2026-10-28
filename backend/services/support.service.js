@@ -89,7 +89,7 @@ function createTicket(user, body) {
   const order = orderFor(user, b.orderId);
   const row = SupportTicket.create({
     userId: user._id,
-    phone: user.phone,
+    phone: user.phone || user.email || "",
     name: (user.profile && user.profile.name) || "",
     role: user.role,
     topicId: topic._id,
@@ -208,7 +208,7 @@ function adminTicketView(t) {
   return {
     ...ticketView(t),
     userId: t.userId,
-    phone: t.phone || (u && u.phone) || "",
+    phone: t.phone || (u && (u.phone || u.email)) || "",
     name: t.name || (u && u.profile && u.profile.name) || "",
     role: t.role
   };

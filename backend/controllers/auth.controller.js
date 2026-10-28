@@ -11,6 +11,15 @@ async function login(req, res) {
   catch (e) { json(res, e.status || 500, { error: e.message }); }
 }
 
+async function googleLogin(req, res) {
+  try { json(res, 200, await authService.googleLogin(req.body.credential, req.body)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function authConfig(req, res) {
+  json(res, 200, authService.authConfig());
+}
+
 async function me(req, res) {
   json(res, 200, await authService.profile(req.user));
 }
@@ -47,4 +56,4 @@ function adminList(req, res) {
   json(res, 200, { admins: authService.adminList() });
 }
 
-module.exports = { sendOtp, login, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };

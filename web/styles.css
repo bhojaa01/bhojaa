@@ -361,3 +361,10 @@ input[readonly]{background:#f3eee4;color:var(--soft)}
   .chat-row,.chat-bub.typing i{animation:none}
 }
 .field-err{border-color:var(--tomato)!important;background:#fff8f5}
+.phone-field{display:flex;align-items:stretch;margin:6px 0 10px}
+.phone-field .phone-cc{display:flex;align-items:center;padding:0 12px;border:1px solid var(--line);border-right:0;border-radius:12px 0 0 12px;background:var(--bg);font-weight:700;color:var(--soft)}
+.phone-field input{flex:1;min-width:0;margin:0;border-top-left-radius:0;border-bottom-left-radius:0}
+.or-line{display:flex;align-items:center;gap:12px;margin:18px 0 10px;color:var(--soft);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--line)}
+.google-note{margin-bottom:10px}
+.google-btn{min-height:44px;display:flex;justify-content:center}

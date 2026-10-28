@@ -360,8 +360,10 @@ async function pageLogin() {
     }, 1000);
   }
   function phoneError(v) {
-    if (v && !/^[6-9]/.test(v)) return "Mobile numbers start with 6, 7, 8 or 9. Check the number and try again.";
-    if (v.length !== 10) return "Enter a 10-digit mobile number.";
+    const abroad = document.getElementById("google-box") && !document.getElementById("google-box").classList.contains("hide")
+      ? " Outside India? Continue with Google below." : "";
+    if (v && !/^[6-9]/.test(v)) return "Indian mobile numbers start with 6, 7, 8 or 9." + abroad;
+    if (v.length !== 10) return "Enter a 10-digit Indian mobile number." + abroad;
     if (/^(\d)\1{9}$/.test(v)) return "That doesn’t look like a real mobile number. Check it and try again.";
     return "";
   }
@@ -427,16 +429,63 @@ async function pageLogin() {
     try {
       const pos = (await SP.locate()) || {};
       const data = await SP.api("/api/login", { body: { phone: phone.value, otp: otp.value, ...pos }, allow401: true });
-      try { sessionStorage.clear(); } catch {}
-      SP.setSession(data.token, data.user);
-      const want = SP.qs("want");
-      if (want === "seeker" || want === "giver") {
-        await pickRole(want);
-        return;
-      }
-      location.href = "role.html";
+      await afterLogin(data);
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
+  setupGoogle().catch(() => {});
+}
+
+async function afterLogin(data) {
+  try { sessionStorage.clear(); } catch {}
+  SP.setSession(data.token, data.user);
+  const want = SP.qs("want");
+  if (want === "seeker" || want === "giver") {
+    await pickRole(want);
+    return;
+  }
+  location.href = "role.html";
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = src;
+    el.async = true;
+    el.onload = resolve;
+    el.onerror = reject;
+    document.head.appendChild(el);
+  });
+}
+
+// Google sign-in for people outside India (no Indian mobile number for OTP).
+async function setupGoogle() {
+  const box = document.getElementById("google-box");
+  const slot = document.getElementById("google-btn");
+  const gmsg = document.getElementById("google-msg");
+  if (!box || !slot) return;
+  const cfg = await SP.api("/api/auth/config", { allow401: true });
+  if (!cfg.googleClientId) return;
+  await loadScript("https://accounts.google.com/gsi/client");
+  google.accounts.id.initialize({
+    client_id: cfg.googleClientId,
+    callback: async (r) => {
+      gmsg.className = "muted";
+      gmsg.textContent = "Signing you in…";
+      try {
+        const pos = (await SP.locate()) || {};
+        const data = await SP.api("/api/login/google", { body: { credential: r.credential, ...pos }, allow401: true });
+        await afterLogin(data);
+      } catch (e) {
+        gmsg.className = "err";
+        gmsg.textContent = e.message;
+      }
+    }
+  });
+  box.classList.remove("hide");
+  google.accounts.id.renderButton(slot, {
+    theme: "outline", size: "large", shape: "pill", text: "continue_with",
+    width: Math.min(360, slot.clientWidth || 320)
+  });
 }
 
 async function pageRole() {
@@ -1186,6 +1235,7 @@ async function pageProfile() {
   }
   function fillForm(u) {
     phone.value = u.phone || "";
+    document.getElementById("phone-wrap").classList.toggle("hide", !u.phone);
     name.value = u.name || "";
     address.value = u.address || "";
     loc.textContent = "Location: " + (placeLine(u) ? placeLine(u) + " · " : "") + locText(u);
@@ -1195,6 +1245,9 @@ async function pageProfile() {
     document.getElementById("v-name").textContent = u.name || "Neighbor";
     document.getElementById("v-role").textContent = u.role === "giver" ? "Give" : u.role === "seeker" ? "Need" : "Pick mode";
     document.getElementById("v-phone").textContent = u.phone || "—";
+    document.getElementById("v-email").textContent = u.email || "";
+    document.getElementById("v-email-row").classList.toggle("hide", !u.email);
+    document.getElementById("v-phone-row").classList.toggle("hide", !u.phone && !!u.email);
     document.getElementById("v-address").textContent = u.address || "—";
     document.getElementById("v-city").textContent = u.city || "—";
     document.getElementById("v-state").textContent = u.state || "—";

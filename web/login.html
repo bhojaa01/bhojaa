@@ -10,13 +10,16 @@
     <p class="back"><a href="index.html">← Home</a></p>
     <div class="logo"><img class="brand" src="logo.svg" alt="Bhojaa"> Bhojaa</div>
     <h1>Log in to Bhojaa</h1>
-    <p class="muted">Enter your 10-digit mobile number. We’ll send an OTP.</p>
+    <p class="muted">In India? Log in with your mobile number. Anywhere else, continue with Google.</p>
     <div class="card"><div class="pad">
-      <label>Phone</label>
-      <input id="phone" type="tel" inputmode="numeric" maxlength="16" pattern="[6-9][0-9]{9}" autocomplete="tel-national" placeholder="9876543210">
+      <label for="phone">Indian mobile number</label>
+      <div class="phone-field">
+        <span class="phone-cc" aria-hidden="true">+91</span>
+        <input id="phone" type="tel" inputmode="numeric" maxlength="16" pattern="[6-9][0-9]{9}" autocomplete="tel-national" placeholder="9876543210">
+      </div>
       <p class="muted">Used only to connect you with the giver — never shown publicly until you accept.</p>
       <div id="otp-box" class="hide">
-        <label>OTP</label>
+        <label for="otp">OTP</label>
         <input id="otp" inputmode="numeric" maxlength="4" placeholder="4-digit code">
         <p class="muted" id="resend-wrap"><button class="ghost hide" type="button" id="resend">Resend OTP</button><span id="timer"></span></p>
       </div>
@@ -24,6 +27,12 @@
       <p class="row">
         <button class="btn" type="button" id="go">Send OTP</button>
       </p>
+      <div id="google-box" class="hide">
+        <div class="or-line"><span>or</span></div>
+        <p class="muted google-note">Outside India, or no Indian number? Use your Google account.</p>
+        <div id="google-btn" class="google-btn"></div>
+        <p id="google-msg" class="muted"></p>
+      </div>
     </div></div>
   </div>
   <script src="client.js"></script>
