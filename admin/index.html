@@ -126,6 +126,20 @@
           <h3 class="sub-head">Top places</h3>
           <div class="table-wrap"><table id="visit-places"></table></div>
           <h3 class="sub-head">Recent visits</h3>
+          <div class="list-tools">
+            <input id="v-q" type="search" placeholder="Search area, city, state, country, postcode…" aria-label="Search visits">
+            <select id="v-source" aria-label="Source">
+              <option value="">All sources</option>
+              <option value="gps">GPS</option>
+              <option value="network">Network</option>
+            </select>
+            <select id="v-device" aria-label="Device">
+              <option value="">All devices</option>
+              <option value="mobile">Mobile</option>
+              <option value="tablet">Tablet</option>
+              <option value="desktop">Desktop</option>
+            </select>
+          </div>
           <div class="table-wrap"><table id="visits"></table></div>
           <div class="pager" id="visit-pager"></div>
         </section>
@@ -169,7 +183,22 @@
         </section>
         <section class="panel hide" data-panel="users">
           <h2>Users</h2>
+          <div class="list-tools">
+            <input id="u-q" type="search" placeholder="Search id, phone, email, name, address…" aria-label="Search users">
+            <select id="u-role" aria-label="Role">
+              <option value="">All roles</option>
+              <option value="seeker">Seeker</option>
+              <option value="giver">Giver</option>
+              <option value="user">No mode yet</option>
+            </select>
+            <select id="u-login" aria-label="Login type">
+              <option value="">All logins</option>
+              <option value="phone">Mobile OTP</option>
+              <option value="google">Google</option>
+            </select>
+          </div>
           <div class="table-wrap"><table id="users"></table></div>
+          <div class="pager" id="u-pager"></div>
         </section>
         <section class="panel hide" data-panel="listings">
           <h2>Listings</h2>

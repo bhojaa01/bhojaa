@@ -34,6 +34,13 @@ input,select,textarea{width:100%;border:1px solid var(--line);background:#fff;bo
 .pager{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
 .pager span{color:var(--soft);font-weight:600;font-size:.9rem}
 .pager button[disabled]{opacity:.4;cursor:default}
+.list-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-bottom:6px}
+.list-tools input,.list-tools select{margin:0}
+@media (max-width:640px){.list-tools{grid-template-columns:1fr 1fr}.list-tools input{grid-column:1/-1}}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--forest)}
+th.sortable[aria-sort="ascending"]::after{content:" ▲"}
+th.sortable[aria-sort="descending"]::after{content:" ▼"}
 .field-err{border-color:var(--tomato) !important}
 .hide{display:none !important}
 .dash{display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}

@@ -98,3 +98,23 @@ test("visit without any location is ignored", async () => {
   const out = await call("POST", "/api/visits", { body: { page: "home", lat: "abc" } });
   assert.equal(out.data.skipped, true);
 });
+
+test("admin can search, filter and sort visits", async () => {
+  await call("POST", "/api/visits", { body: { country: "France", state: "Ile-de-France", city: "Paris", source: "network" }, headers: { "user-agent": "Mozilla/5.0 (X11; Linux)" } });
+  await call("POST", "/api/visits", { body: { country: "Poland", state: "Mazowieckie", city: "Warsaw", source: "network" }, headers: { "user-agent": "Mozilla/5.0 (X11; Linux)" } });
+  const token = await adminToken();
+  const paris = await call("GET", "/api/admin/visits?q=pari", { token });
+  assert.equal(paris.data.rows.length, 1);
+  assert.equal(paris.data.rows[0].city, "Paris");
+  assert.ok(paris.data.matched < paris.data.total);
+  const gps = await call("GET", "/api/admin/visits?source=gps&size=100", { token });
+  assert.ok(gps.data.rows.every((r) => r.source === "gps"));
+  const net = await call("GET", "/api/admin/visits?source=network&device=desktop&size=100", { token });
+  assert.ok(net.data.rows.length >= 2 && net.data.rows.every((r) => r.source !== "gps" && r.device === "desktop"));
+  const byCity = await call("GET", "/api/admin/visits?sort=city&dir=asc&size=100", { token });
+  const cities = byCity.data.rows.map((r) => r.city);
+  assert.deepEqual(cities, [...cities].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })));
+  const bad = await call("GET", "/api/admin/visits?sort=__proto__&q=.*", { token });
+  assert.equal(bad.status, 200);
+  assert.equal(bad.data.sort, "createdAt");
+});

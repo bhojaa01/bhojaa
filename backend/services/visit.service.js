@@ -94,14 +94,63 @@ function startOfToday() {
   return d;
 }
 
+const SORTS = ["createdAt", "locality", "city", "state", "country", "postcode", "source", "device", "page"];
+const SEARCHED = ["locality", "city", "state", "country", "postcode"];
+
+// Admin list options: sort/dir, free-text q, and exact source/device filters.
+function listOpts(query) {
+  const q = query || {};
+  const sort = SORTS.includes(q.sort) ? q.sort : "createdAt";
+  const dir = q.dir === "asc" ? 1 : -1;
+  const term = text(q.q, 60).toLowerCase();
+  const source = q.source === "gps" || q.source === "network" ? q.source : "";
+  const device = ["mobile", "tablet", "desktop"].includes(q.device) ? q.device : "";
+  return { sort, dir, term, source, device };
+}
+
+function mongoFilter(o) {
+  const f = {};
+  if (o.term) {
+    const re = new RegExp(o.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    f.$or = SEARCHED.map((k) => ({ [k]: re }));
+  }
+  if (o.source === "gps") f.source = "gps";
+  if (o.source === "network") f.source = { $ne: "gps" };
+  if (o.device) f.device = o.device;
+  return f;
+}
+
+function matches(r, o) {
+  if (o.term && !SEARCHED.some((k) => String(r[k] || "").toLowerCase().includes(o.term))) return false;
+  if (o.source === "gps" && r.source !== "gps") return false;
+  if (o.source === "network" && r.source === "gps") return false;
+  if (o.device && r.device !== o.device) return false;
+  return true;
+}
+
+function compare(o) {
+  return (a, b) => {
+    const x = a[o.sort];
+    const y = b[o.sort];
+    const d = o.sort === "createdAt"
+      ? new Date(x || 0) - new Date(y || 0)
+      : String(x || "").localeCompare(String(y || ""), undefined, { sensitivity: "base" });
+    return d * o.dir;
+  };
+}
+
 async function list(query) {
   const size = Math.min(100, Math.max(1, Number(query && query.size) || 20));
   const page = Math.max(1, Number(query && query.page) || 1);
+  const o = listOpts(query);
   const today = startOfToday();
   const c = store();
   if (c) {
-    const [rows, total, todayCount, places] = await Promise.all([
-      c.find({}).sort({ createdAt: -1 }).skip((page - 1) * size).limit(size).toArray(),
+    const filter = mongoFilter(o);
+    const order = o.sort === "createdAt" ? { createdAt: o.dir } : { [o.sort]: o.dir, createdAt: -1 };
+    const [rows, matched, total, todayCount, places] = await Promise.all([
+      c.find(filter).sort(order).collation({ locale: "en", strength: 2 }).skip((page - 1) * size).limit(size).toArray(),
+      c.countDocuments(filter),
       c.countDocuments({}),
       c.countDocuments({ createdAt: { $gte: today } }),
       c.aggregate([
@@ -111,7 +160,7 @@ async function list(query) {
       ]).toArray()
     ]);
     return {
-      enabled: enabled(), page, size, total, today: todayCount,
+      enabled: enabled(), page, size, total, matched, today: todayCount, sort: o.sort, dir: o.dir > 0 ? "asc" : "desc",
       places: places.map((p) => ({ ...p._id, count: p.count, last: p.last })),
       rows: rows.map(view)
     };
@@ -124,11 +173,12 @@ async function list(query) {
     if (r.createdAt > t.last) t.last = r.createdAt;
     tally.set(k, t);
   });
+  const found = memory.filter((r) => matches(r, o)).sort(compare(o));
   return {
-    enabled: enabled(), page, size, total: memory.length,
-    today: memory.filter((r) => r.createdAt >= today).length,
+    enabled: enabled(), page, size, total: memory.length, matched: found.length,
+    today: memory.filter((r) => r.createdAt >= today).length, sort: o.sort, dir: o.dir > 0 ? "asc" : "desc",
     places: [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 10),
-    rows: memory.slice((page - 1) * size, page * size).map(view)
+    rows: found.slice((page - 1) * size, page * size).map(view)
   };
 }
 

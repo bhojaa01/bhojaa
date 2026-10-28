@@ -62,6 +62,80 @@ function table(el, cols, rows) {
     "</tbody>";
 }
 
+// Makes headers of columns that have a `sort` key clickable; sort is { key, dir } with dir 1 / -1.
+function sortHeads(el, cols, sort, onSort) {
+  el.querySelectorAll("th").forEach((th, i) => {
+    const c = cols[i];
+    if (!c || !c.sort) return;
+    th.classList.add("sortable");
+    th.tabIndex = 0;
+    th.setAttribute("aria-sort", c.sort === sort.key ? (sort.dir > 0 ? "ascending" : "descending") : "none");
+    const go = () => onSort(c.sort === sort.key ? { key: c.sort, dir: -sort.dir } : { key: c.sort, dir: c.newestFirst ? -1 : 1 });
+    th.onclick = go;
+    th.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+  });
+}
+
+function pagerHtml(prefix, page, pages, label) {
+  return '<button type="button" class="ghost" id="' + prefix + '-prev"' + (page <= 1 ? " disabled" : "") + ">Prev</button>"
+    + "<span>Page " + page + " of " + pages + " · " + label + "</span>"
+    + '<button type="button" class="ghost" id="' + prefix + '-next"' + (page >= pages ? " disabled" : "") + ">Next</button>";
+}
+
+const USER_PAGE = 20;
+let userRows = [];
+let userPage = 1;
+let userSort = { key: "createdAt", dir: -1 };
+const userText = (r) => [r.id, r.phone, r.contactPhone, r.email, r.profile && r.profile.name, r.address, r.city, r.state, r.country].join(" ").toLowerCase();
+const userCols = [
+  { key: "id", sort: "id", label: "Id", val: (r) => Number(String(r.id).replace(/\D/g, "")) || 0, cell: (r) => esc(r.id) },
+  { key: "phone", sort: "phone", label: "Phone / email", val: (r) => r.phone || r.contactPhone || r.email || "", cell: (r) => esc(r.phone || r.contactPhone || r.email) },
+  { key: "login", sort: "login", label: "Login", val: (r) => (r.email && !r.phone ? "google" : "phone"), cell: (r) => badge(r.email && !r.phone ? "google" : "otp") },
+  { key: "name", sort: "name", label: "Name", val: (r) => (r.profile && r.profile.name) || "", cell: (r) => esc(r.profile && r.profile.name) },
+  { key: "role", sort: "role", label: "Role", val: (r) => r.role || "", cell: (r) => badge(r.role) },
+  { key: "address", sort: "address", label: "Address", val: (r) => r.address || "", cell: (r) => esc(r.address) },
+  { key: "city", sort: "city", label: "City / town", val: (r) => r.city || "", cell: (r) => esc(r.city) },
+  { key: "state", sort: "state", label: "State", val: (r) => r.state || "", cell: (r) => esc(r.state) },
+  { key: "country", sort: "country", label: "Country", val: (r) => r.country || "", cell: (r) => esc(r.country) },
+  { key: "createdAt", sort: "createdAt", newestFirst: true, label: "Joined", val: (r) => new Date(r.createdAt || 0).getTime() || 0, cell: (r) => esc(when(r.createdAt)) },
+  { key: "updatedAt", sort: "updatedAt", newestFirst: true, label: "Last update", val: (r) => new Date(r.updatedAt || r.createdAt || 0).getTime() || 0, cell: (r) => esc(when(r.updatedAt || r.createdAt)) },
+  { key: "geo", label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
+];
+
+function paintUsers() {
+  const el = document.getElementById("users");
+  if (!el) return;
+  const q = document.getElementById("u-q").value.trim().toLowerCase();
+  const role = document.getElementById("u-role").value;
+  const login = document.getElementById("u-login").value;
+  const col = userCols.find((c) => c.key === userSort.key);
+  const rows = userRows
+    .filter((r) => !q || userText(r).includes(q))
+    .filter((r) => !role || (r.role || "user") === role)
+    .filter((r) => !login || userCols[2].val(r) === login)
+    .sort((a, b) => {
+      const x = col.val(a);
+      const y = col.val(b);
+      const d = typeof x === "number" ? x - y : String(x).localeCompare(String(y), undefined, { sensitivity: "base" });
+      return d * userSort.dir;
+    });
+  const pages = Math.max(1, Math.ceil(rows.length / USER_PAGE));
+  if (userPage > pages) userPage = pages;
+  if (userPage < 1) userPage = 1;
+  const start = (userPage - 1) * USER_PAGE;
+  table(el, userCols, rows.slice(start, start + USER_PAGE));
+  sortHeads(el, userCols, userSort, (s) => { userSort = s; userPage = 1; paintUsers(); });
+  document.getElementById("u-pager").innerHTML = pagerHtml("u", userPage, pages,
+    rows.length + (rows.length !== userRows.length ? " of " + userRows.length : "") + " users");
+  document.getElementById("u-prev").onclick = () => { userPage -= 1; paintUsers(); };
+  document.getElementById("u-next").onclick = () => { userPage += 1; paintUsers(); };
+}
+
+["u-q", "u-role", "u-login"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("input", () => { userPage = 1; paintUsers(); });
+});
+
 const CAT_PAGE = 8;
 let catRows = [];
 let catPage = 1;
@@ -366,11 +440,19 @@ document.getElementById("sq-table").onclick = async (e) => {
 
 let visitPage = 1;
 let visitOn = true;
+let visitSort = { key: "createdAt", dir: -1 };
+let visitTimer = null;
 function place(r) {
   return [r.city, r.state, r.country].filter(Boolean).join(", ") || "Unknown";
 }
 async function loadVisits() {
-  const d = await api("/api/admin/visits?page=" + visitPage + "&size=20");
+  const qs = new URLSearchParams({
+    page: visitPage, size: 20, sort: visitSort.key, dir: visitSort.dir > 0 ? "asc" : "desc",
+    q: document.getElementById("v-q").value.trim(),
+    source: document.getElementById("v-source").value,
+    device: document.getElementById("v-device").value
+  });
+  const d = await api("/api/admin/visits?" + qs);
   visitOn = d.enabled;
   const btn = document.getElementById("visit-toggle");
   btn.textContent = visitOn ? "Turn off recording" : "Turn on recording";
@@ -386,33 +468,42 @@ async function loadVisits() {
     { label: "Visits", cell: (r) => esc(r.count) },
     { label: "Last visit", cell: (r) => esc(when(r.last)) }
   ], d.places);
-  table(document.getElementById("visits"), [
-    { label: "When", cell: (r) => esc(when(r.createdAt)) },
-    { label: "Area", cell: (r) => esc(r.locality && r.locality !== r.city ? r.locality : "") },
-    { label: "City", cell: (r) => esc(r.city) },
-    { label: "State", cell: (r) => esc(r.state) },
-    { label: "Country", cell: (r) => esc(r.country) },
-    { label: "Postcode", cell: (r) => esc(r.postcode) },
+  const visitCols = [
+    { sort: "createdAt", newestFirst: true, label: "When", cell: (r) => esc(when(r.createdAt)) },
+    { sort: "locality", label: "Area", cell: (r) => esc(r.locality && r.locality !== r.city ? r.locality : "") },
+    { sort: "city", label: "City", cell: (r) => esc(r.city) },
+    { sort: "state", label: "State", cell: (r) => esc(r.state) },
+    { sort: "country", label: "Country", cell: (r) => esc(r.country) },
+    { sort: "postcode", label: "Postcode", cell: (r) => esc(r.postcode) },
     { label: "Lat", cell: (r) => esc(r.lat) },
     { label: "Long", cell: (r) => esc(r.lng) },
-    { label: "Source", cell: (r) => r.source === "gps"
+    { sort: "source", label: "Source", cell: (r) => r.source === "gps"
       ? '<span class="badge">GPS' + (r.accuracy != null ? " ±" + esc(r.accuracy) + " m" : "") + "</span>"
       : '<span class="badge warn">Network</span>' },
-    { label: "Device", cell: (r) => esc(r.device) },
-    { label: "Page", cell: (r) => esc(r.page) }
-  ], d.rows);
-  const pages = Math.max(1, Math.ceil(d.total / d.size));
+    { sort: "device", label: "Device", cell: (r) => esc(r.device) },
+    { sort: "page", label: "Page", cell: (r) => esc(r.page) }
+  ];
+  const visitsEl = document.getElementById("visits");
+  table(visitsEl, visitCols, d.rows);
+  sortHeads(visitsEl, visitCols, visitSort, (s) => { visitSort = s; visitPage = 1; loadVisits().catch(() => {}); });
+  const matched = d.matched != null ? d.matched : d.total;
+  const pages = Math.max(1, Math.ceil(matched / d.size));
+  if (visitPage > pages) { visitPage = pages; return loadVisits(); }
   const pager = document.getElementById("visit-pager");
   pager.innerHTML = d.total
-    ? '<button type="button" class="ghost" id="visit-prev"' + (visitPage <= 1 ? " disabled" : "") + ">Prev</button>"
-      + "<span>Page " + visitPage + " of " + pages + " · " + d.total + "</span>"
-      + '<button type="button" class="ghost" id="visit-next"' + (visitPage >= pages ? " disabled" : "") + ">Next</button>"
+    ? pagerHtml("visit", visitPage, pages, matched + (matched !== d.total ? " of " + d.total : "") + " visits")
     : "";
   const prev = document.getElementById("visit-prev");
   const next = document.getElementById("visit-next");
   if (prev) prev.onclick = () => { visitPage -= 1; loadVisits().catch(() => {}); };
   if (next) next.onclick = () => { visitPage += 1; loadVisits().catch(() => {}); };
 }
+["v-q", "v-source", "v-device"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", () => {
+    clearTimeout(visitTimer);
+    visitTimer = setTimeout(() => { visitPage = 1; loadVisits().catch(() => {}); }, id === "v-q" ? 300 : 0);
+  });
+});
 document.getElementById("visit-toggle").onclick = async () => {
   const msg = document.getElementById("visit-msg");
   try {
@@ -443,18 +534,8 @@ async function load() {
   api("/api/admin/visits?size=1").then((v) => {
     document.getElementById("stats").insertAdjacentHTML("afterbegin", `<button type="button" class="stat" data-section="visits"><b>${esc(v.total)}</b><span>Visitors · ${esc(v.today)} today</span></button>`);
   }).catch(() => {});
-  table(document.getElementById("users"), [
-    { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Phone", cell: (r) => esc(r.phone) },
-    { label: "Name", cell: (r) => esc(r.profile && r.profile.name) },
-    { label: "Role", cell: (r) => badge(r.role) },
-    { label: "Address", cell: (r) => esc(r.address) },
-    { label: "City / town", cell: (r) => esc(r.city) },
-    { label: "State", cell: (r) => esc(r.state) },
-    { label: "Country", cell: (r) => esc(r.country) },
-    { label: "Last update", cell: (r) => esc(when(r.updatedAt || r.createdAt)) },
-    { label: "GeoJSON [lng, lat]", cell: (r) => esc(geo(r)) }
-  ], data.users);
+  userRows = data.users || [];
+  paintUsers();
   otpRows = data.otps || [];
   if (otpPage > otpPages()) otpPage = otpPages();
   paintOtps();
