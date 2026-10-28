@@ -2,7 +2,7 @@ const adminService = require("../services/admin.service");
 const { json } = require("../utils/http");
 
 function data(req, res) {
-  json(res, 200, adminService.data());
+  json(res, 200, adminService.data(req.admin));
 }
 
 function addCategory(req, res) {

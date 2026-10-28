@@ -168,7 +168,7 @@ function adminReady() {
 
 function adminSetup(username, password) {
   if (Admin.size() > 0) throw Object.assign(new Error("Admin already set up"), { status: 400 });
-  const row = Admin.create({ username, password });
+  const row = Admin.create({ username, password, role: "super" });
   const token = Token.createAdmin(row);
   Admin.setToken(row, token);
   return { token };
@@ -182,13 +182,39 @@ function adminLogin(username, password) {
   return { token };
 }
 
-function adminCreate(username, password) {
-  const row = Admin.create({ username, password });
+function adminCreate(body) {
+  const row = Admin.create({ username: body.username, password: body.password, role: body.role === "super" ? "super" : "staff", perms: body.perms });
   return Admin.dump(row);
+}
+
+function adminTarget(id) {
+  const row = Admin.findById(id);
+  if (!row) throw Object.assign(new Error("Admin not found"), { status: 404 });
+  return row;
+}
+
+function adminUpdate(me, id, body) {
+  const row = adminTarget(id);
+  const demote = body.role === "staff" && Admin.roleOf(row) === "super";
+  if (demote && row._id === me._id) throw Object.assign(new Error("You can’t remove your own super admin access"), { status: 400 });
+  if (demote && Admin.supers().length <= 1) throw Object.assign(new Error("Keep at least one super admin"), { status: 400 });
+  return Admin.dump(Admin.update(row, body));
+}
+
+function adminRemove(me, id) {
+  const row = adminTarget(id);
+  if (row._id === me._id) throw Object.assign(new Error("You can’t delete yourself"), { status: 400 });
+  if (Admin.roleOf(row) === "super" && Admin.supers().length <= 1) throw Object.assign(new Error("Keep at least one super admin"), { status: 400 });
+  Admin.remove(row);
+  return { ok: true };
+}
+
+function adminMe(row) {
+  return { ...Admin.dump(row), sections: Admin.SECTIONS };
 }
 
 function adminList() {
   return Admin.all().map(Admin.dump);
 }
 
-module.exports = { sendOtp, login, googleLogin, authConfig, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };

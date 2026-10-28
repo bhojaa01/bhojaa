@@ -48,12 +48,26 @@ function adminSetup(req, res) {
 }
 
 function adminCreate(req, res) {
-  try { json(res, 200, authService.adminCreate(req.body.username, req.body.password)); }
+  try { json(res, 200, authService.adminCreate(req.body)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function adminUpdate(req, res) {
+  try { json(res, 200, authService.adminUpdate(req.admin, req.params.id, req.body)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function adminRemove(req, res) {
+  try { json(res, 200, authService.adminRemove(req.admin, req.params.id)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
+function adminMe(req, res) {
+  json(res, 200, authService.adminMe(req.admin));
 }
 
 function adminList(req, res) {
   json(res, 200, { admins: authService.adminList() });
 }
 
-module.exports = { sendOtp, login, googleLogin, authConfig, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };

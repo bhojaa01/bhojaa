@@ -11,7 +11,8 @@
       <div class="logo"><img class="brand" src="logo.svg" alt=""> Bhojaa Admin</div>
       <div class="row">
         <a class="ghost" id="app-link" href="/">App</a>
-        <button class="ghost hide" type="button" id="refresh">Refresh</button>
+        <span class="who hide" id="who"></span>
+        <button class="ghost hide" type="button" id="refresh" title="Reload the latest data">Refresh</button>
         <button class="ghost hide" type="button" id="out">Log out</button>
       </div>
     </div>
@@ -112,13 +113,13 @@
             <label>Footer</label>
             <input id="home-footer">
             <p id="home-msg" class="muted"></p>
-            <button class="btn" type="button" id="home-save">Save home page</button>
+            <button class="btn w" type="button" id="home-save">Save home page</button>
           </div></div>
         </section>
         <section class="panel hide" data-panel="visits">
           <div class="panel-head">
             <h2>Visitors</h2>
-            <button class="ghost" type="button" id="visit-toggle">Turn off</button>
+            <button class="ghost w" type="button" id="visit-toggle">Turn off</button>
           </div>
           <p class="muted intro">Home page visits before login. GPS rows use the visitor’s exact location when they allow it. Network rows are approximate, based on their internet connection. No phone number or IP address is stored.</p>
           <p id="visit-msg" class="muted"></p>
@@ -154,7 +155,7 @@
         <section class="panel hide" data-panel="support_topics">
           <div class="panel-head">
             <h2>Support questions</h2>
-            <button class="btn" type="button" id="sq-open">Add question</button>
+            <button class="btn w" type="button" id="sq-open">Add question</button>
           </div>
           <p class="muted intro">Shown in the app under Help &amp; support. Users read the answer first, then can send their own question. “Something else” is always last.</p>
           <div class="card hide" id="sq-form" style="margin-bottom:14px"><div class="pad">
@@ -223,7 +224,7 @@
         <section class="panel hide" data-panel="categories">
           <div class="panel-head">
             <h2>Categories</h2>
-            <button class="btn" type="button" id="cat-open">Add category</button>
+            <button class="btn w" type="button" id="cat-open">Add category</button>
           </div>
           <div class="card hide" id="cat-form" style="margin-bottom:14px"><div class="pad">
             <label>Name</label>
@@ -248,7 +249,7 @@
         <section class="panel hide" data-panel="partners">
           <div class="panel-head">
             <h2>Partners</h2>
-            <button class="btn" type="button" id="partner-open">Add partner</button>
+            <button class="btn w" type="button" id="partner-open">Add partner</button>
           </div>
           <p class="muted intro">OTP / SMS providers. Enable one or more. Use {{phone}} and {{otp}} in the JSON body.</p>
           <div class="card hide" id="partner-form" style="margin-bottom:14px"><div class="pad">
@@ -285,14 +286,36 @@
           <div class="pager" id="otp-pager"></div>
         </section>
         <section class="panel hide" data-panel="staff">
-          <h2>Admins</h2>
-          <div class="card" style="margin-bottom:14px"><div class="pad">
-            <label>Username</label>
-            <input id="staff-user">
-            <label>Password</label>
-            <input id="staff-pass" type="password">
+          <div class="panel-head">
+            <h2>Admins</h2>
+            <button class="btn" type="button" id="staff-open">Add admin</button>
+          </div>
+          <p class="muted intro">Super admins can see and change everything, including this page. Staff only see the menus you give them: Read = view only, Write = view and change.</p>
+          <div class="card hide" id="staff-form" style="margin-bottom:14px"><div class="pad">
+            <h3 id="staff-form-title">Add admin</h3>
+            <label for="staff-user">Username</label>
+            <input id="staff-user" autocomplete="off">
+            <label for="staff-pass" id="staff-pass-label">Password</label>
+            <input id="staff-pass" type="password" autocomplete="new-password">
+            <label for="staff-role">Type</label>
+            <select id="staff-role">
+              <option value="staff">Staff — access by menu</option>
+              <option value="super">Super admin — full access</option>
+            </select>
+            <div id="staff-perms">
+              <div class="perm-head"><span>Menu</span><span>Access</span></div>
+              <div id="staff-perm-rows"></div>
+              <p class="row perm-quick">
+                <button class="ghost" type="button" data-perm-all="none">All none</button>
+                <button class="ghost" type="button" data-perm-all="read">All read</button>
+                <button class="ghost" type="button" data-perm-all="write">All write</button>
+              </p>
+            </div>
             <p id="staff-msg" class="muted"></p>
-            <button class="btn" type="button" id="staff-add">Add admin</button>
+            <p class="row">
+              <button class="btn" type="button" id="staff-save">Save</button>
+              <button class="ghost" type="button" id="staff-cancel">Cancel</button>
+            </p>
           </div></div>
           <div class="table-wrap"><table id="staff"></table></div>
         </section>

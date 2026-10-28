@@ -15,7 +15,22 @@ function dietOf(v) {
   return "all";
 }
 
-function data() {
+// Everything the admin dashboard shows, trimmed to the sections this admin can read.
+function data(admin) {
+  const full = everything();
+  const ok = (k) => (k === "staff" ? Admin.roleOf(admin) === "super" : Admin.can(admin, k, "read"));
+  const out = { stats: {} };
+  Object.entries(full.stats).forEach(([k, v]) => {
+    if (["sessions", "openListings", "openNeeds"].includes(k) || ok(k)) out.stats[k] = v;
+  });
+  ["users", "otps", "listings", "need_requests", "orders", "reviews", "reports", "categories", "staff", "partners"].forEach((k) => {
+    out[k] = ok(k) ? full[k] : [];
+  });
+  if (Admin.roleOf(admin) === "super") out.indexes = full.indexes;
+  return out;
+}
+
+function everything() {
   const now = Date.now();
   return {
     stats: {

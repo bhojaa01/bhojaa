@@ -21,4 +21,13 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireAdmin };
+// Admin login plus access to one admin menu section ("read" or "write"), or "super" for super admins only.
+function requirePerm(section, level) {
+  return (req, res, next) => requireAdmin(req, res, () => {
+    const ok = section === "super" ? Admin.roleOf(req.admin) === "super" : Admin.can(req.admin, section, level);
+    if (!ok) return json(res, 403, { error: "You don’t have access to this. Ask a super admin." });
+    next();
+  });
+}
+
+module.exports = { requireAuth, requireAdmin, requirePerm };

@@ -1,6 +1,6 @@
 const Router = require("../utils/router");
 const support = require("../controllers/support.controller");
-const { requireAuth, requireAdmin } = require("../middleware/auth");
+const { requireAuth, requirePerm } = require("../middleware/auth");
 
 const router = new Router();
 router.get("/api/support/topics", requireAuth, support.topics);
@@ -11,14 +11,14 @@ router.get("/api/support/unread", requireAuth, support.unread);
 router.post("/api/support/seen", requireAuth, support.seen);
 router.post("/api/support/tickets/:id/reply", requireAuth, support.reply);
 
-router.get("/api/admin/support/topics", requireAdmin, support.adminTopics);
-router.post("/api/admin/support/topics", requireAdmin, support.addTopic);
-router.post("/api/admin/support/topics/:id", requireAdmin, support.updateTopic);
-router.post("/api/admin/support/topics/:id/toggle", requireAdmin, support.toggleTopic);
-router.post("/api/admin/support/topics/:id/move", requireAdmin, support.moveTopic);
-router.post("/api/admin/support/topics/:id/delete", requireAdmin, support.removeTopic);
-router.get("/api/admin/support/tickets", requireAdmin, support.adminTickets);
-router.post("/api/admin/support/tickets/:id/reply", requireAdmin, support.adminReply);
-router.post("/api/admin/support/tickets/:id/status", requireAdmin, support.setStatus);
+router.get("/api/admin/support/topics", requirePerm("support_topics", "read"), support.adminTopics);
+router.post("/api/admin/support/topics", requirePerm("support_topics", "write"), support.addTopic);
+router.post("/api/admin/support/topics/:id", requirePerm("support_topics", "write"), support.updateTopic);
+router.post("/api/admin/support/topics/:id/toggle", requirePerm("support_topics", "write"), support.toggleTopic);
+router.post("/api/admin/support/topics/:id/move", requirePerm("support_topics", "write"), support.moveTopic);
+router.post("/api/admin/support/topics/:id/delete", requirePerm("support_topics", "write"), support.removeTopic);
+router.get("/api/admin/support/tickets", requirePerm("support", "read"), support.adminTickets);
+router.post("/api/admin/support/tickets/:id/reply", requirePerm("support", "write"), support.adminReply);
+router.post("/api/admin/support/tickets/:id/status", requirePerm("support", "write"), support.setStatus);
 
 module.exports = router;

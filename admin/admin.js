@@ -198,7 +198,7 @@ function paintCats() {
     { label: "Name", cell: (r) => esc(r.name) },
     { label: "Diet", cell: (r) => esc(r.diet || "all") },
     { label: "Slug", cell: (r) => esc(r.slug) },
-    { label: "", cell: (r) => '<button type="button" class="ghost" data-del-cat="' + esc(r.id) + '">Delete</button>' }
+    { label: "", cell: (r) => '<button type="button" class="ghost w" data-del-cat="' + esc(r.id) + '">Delete</button>' }
   ], rows);
   const pager = document.getElementById("cat-pager");
   if (!pager) return;
@@ -274,6 +274,7 @@ function catDup(name) {
 }
 
 function showSection(name) {
+  if (typeof canSee === "function" && !canSee(name)) name = "overview";
   document.querySelectorAll(".menu-item").forEach((b) => b.classList.toggle("on", b.dataset.section === name));
   document.querySelectorAll("[data-panel]").forEach((p) => p.classList.toggle("hide", p.dataset.panel !== name));
   if (name === "visits") loadVisits().catch(() => {});
@@ -329,14 +330,14 @@ function showTicket(r) {
       ${supBadge(r.status)}
     </div>
     <div class="sup-thread">${r.messages.map((m) => `<div class="sup-msg ${m.from === "admin" ? "from-team" : ""}"><small>${m.from === "admin" ? "Bhojaa team" : "User"} · ${esc(when(m.at))}</small><p>${esc(m.text)}</p></div>`).join("")}</div>
-    <label for="sup-reply">Reply</label>
-    <textarea id="sup-reply" rows="3" maxlength="1000" placeholder="Write a reply. The user sees it in the app."></textarea>
+    <label for="sup-reply" class="w">Reply</label>
+    <textarea class="w" id="sup-reply" rows="3" maxlength="1000" placeholder="Write a reply. The user sees it in the app."></textarea>
     <p id="sup-msg" class="err"></p>
     <p class="row">
-      <button class="btn" type="button" id="sup-send">Send reply</button>
+      <button class="btn w" type="button" id="sup-send">Send reply</button>
       ${r.status === "closed"
-        ? '<button class="ghost" type="button" data-sup-set="open">Reopen</button>'
-        : '<button class="ghost" type="button" data-sup-set="closed">Close</button>'}
+        ? '<button class="ghost w" type="button" data-sup-set="open">Reopen</button>'
+        : '<button class="ghost w" type="button" data-sup-set="closed">Close</button>'}
       <button class="ghost" type="button" id="sup-hide">Hide</button>
     </p>`;
   document.getElementById("sup-send").onclick = async () => {
@@ -393,16 +394,16 @@ async function loadTopics() {
   let i = -1;
   table(document.getElementById("sq-table"), [
     { label: "Order", cell: (r) => { if (r.isOther) return '<span class="muted">Last</span>'; i += 1;
-      return '<button type="button" class="ghost icon-btn" aria-label="Move up" data-sq-move="up" data-id="' + esc(r.id) + '"' + (i === 0 ? " disabled" : "") + ">↑</button> "
-        + '<button type="button" class="ghost icon-btn" aria-label="Move down" data-sq-move="down" data-id="' + esc(r.id) + '"' + (i === last ? " disabled" : "") + ">↓</button>"; } },
+      return '<button type="button" class="ghost icon-btn w" aria-label="Move up" data-sq-move="up" data-id="' + esc(r.id) + '"' + (i === 0 ? " disabled" : "") + ">↑</button> "
+        + '<button type="button" class="ghost icon-btn w" aria-label="Move down" data-sq-move="down" data-id="' + esc(r.id) + '"' + (i === last ? " disabled" : "") + ">↓</button>"; } },
     { label: "Topic", cell: (r) => esc(r.group || "—") },
     { label: "Question", cell: (r) => esc(r.question) },
     { label: "Shown to", cell: (r) => esc(AUD[r.audience] || r.audience) },
     { label: "Status", cell: (r) => badge(r.enabled ? "on" : "off") },
     { label: "Solved", cell: (r) => r.isOther ? "—" : esc(r.solvedCount) },
-    { label: "", cell: (r) => '<button type="button" class="ghost" data-sq-edit="' + esc(r.id) + '">Edit</button>'
-      + (r.isOther ? "" : ' <button type="button" class="ghost" data-sq-toggle="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Hide" : "Show") + "</button>"
-      + ' <button type="button" class="ghost" data-sq-del="' + esc(r.id) + '">Delete</button>') }
+    { label: "", cell: (r) => '<button type="button" class="ghost w" data-sq-edit="' + esc(r.id) + '">Edit</button>'
+      + (r.isOther ? "" : ' <button type="button" class="ghost w" data-sq-toggle="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Hide" : "Show") + "</button>"
+      + ' <button type="button" class="ghost w" data-sq-del="' + esc(r.id) + '">Delete</button>') }
   ], topicRows);
 }
 document.getElementById("sq-open").onclick = () => showTopicForm(true);
@@ -516,6 +517,7 @@ document.getElementById("visit-toggle").onclick = async () => {
 };
 
 async function load() {
+  await loadMe();
   const data = await api("/api/admin/data");
   const s = data.stats;
   document.getElementById("stats").innerHTML = [
@@ -530,8 +532,8 @@ async function load() {
     ["partners", s.partners],
     ["otps", s.otps],
     ["staff", s.staff]
-  ].map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
-  api("/api/admin/visits?size=1").then((v) => {
+  ].filter(([k, v]) => v != null && canSee(k)).map(([k, v]) => `<button type="button" class="stat" data-section="${esc(k)}"><b>${esc(v)}</b><span>${esc(LABELS[k] || k)}</span></button>`).join("");
+  if (canSee("visits")) api("/api/admin/visits?size=1").then((v) => {
     document.getElementById("stats").insertAdjacentHTML("afterbegin", `<button type="button" class="stat" data-section="visits"><b>${esc(v.total)}</b><span>Visitors · ${esc(v.today)} today</span></button>`);
   }).catch(() => {});
   userRows = data.users || [];
@@ -597,15 +599,110 @@ async function load() {
     { label: "Status", cell: (r) => badge(r.enabled ? "on" : "off") },
     { label: "URL", cell: (r) => esc(r.url) },
     { label: "", cell: (r) =>
-      '<button type="button" class="ghost" data-edit-partner="' + esc(r.id) + '">Edit</button> '
-      + '<button type="button" class="ghost" data-toggle-partner="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Disable" : "Enable") + "</button> "
-      + '<button type="button" class="ghost" data-del-partner="' + esc(r.id) + '">Delete</button>' }
+      '<button type="button" class="ghost w" data-edit-partner="' + esc(r.id) + '">Edit</button> '
+      + '<button type="button" class="ghost w" data-toggle-partner="' + esc(r.id) + '" data-on="' + (r.enabled ? "0" : "1") + '">' + (r.enabled ? "Disable" : "Enable") + "</button> "
+      + '<button type="button" class="ghost w" data-del-partner="' + esc(r.id) + '">Delete</button>' }
   ], data.partners || []);
-  table(document.getElementById("staff"), [
-    { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Username", cell: (r) => esc(r.username) },
-    { label: "Created", cell: (r) => esc(when(r.createdAt)) }
-  ], data.staff || []);
+  staffRows = data.staff || [];
+  paintStaff();
+}
+
+// ---- Admin roles: what the logged-in admin can see and change ----
+let ME = null;
+let staffRows = [];
+let staffEditId = "";
+const sectionLabel = (s) => {
+  const b = document.querySelector('.menu-item[data-section="' + s + '"]');
+  return b ? b.textContent.trim() : LABELS[s] || s;
+};
+const isSuper = () => !ME || ME.role === "super";
+function canSee(s) {
+  if (isSuper() || s === "overview") return true;
+  if (s === "staff") return false;
+  return ME.perms[s] === "read" || ME.perms[s] === "write";
+}
+function canWrite(s) {
+  return isSuper() || ME.perms[s] === "write";
+}
+async function loadMe() {
+  ME = await api("/api/admin/me");
+  const who = document.getElementById("who");
+  who.textContent = ME.username + " · " + (ME.role === "super" ? "Super admin" : "Staff");
+  who.classList.remove("hide");
+  document.querySelectorAll(".menu-item[data-section]").forEach((b) => b.classList.toggle("hide", !canSee(b.dataset.section)));
+  document.querySelectorAll(".panel[data-panel]").forEach((p) => {
+    const s = p.dataset.panel;
+    const ro = s !== "overview" && canSee(s) && !canWrite(s);
+    p.classList.toggle("ro", ro);
+    let note = p.querySelector(".ro-note");
+    if (ro && !note) {
+      note = document.createElement("p");
+      note.className = "ro-note";
+      note.textContent = "View only — ask a super admin for write access.";
+      p.querySelector("h2").insertAdjacentElement("afterend", note);
+    }
+    if (note) note.classList.toggle("hide", !ro);
+    if (s === "home") p.querySelectorAll("input,textarea,select").forEach((el) => { el.disabled = ro; });
+  });
+}
+
+function permText(r) {
+  if (r.role === "super") return "Everything";
+  const parts = Object.entries(r.perms || {}).map(([k, v]) => sectionLabel(k) + (v === "write" ? " (write)" : ""));
+  return parts.length ? parts.join(", ") : "No menus";
+}
+
+function paintStaff() {
+  const el = document.getElementById("staff");
+  if (!el) return;
+  table(el, [
+    { label: "Username", cell: (r) => esc(r.username) + (ME && r.id === ME.id ? ' <span class="badge">you</span>' : "") },
+    { label: "Type", cell: (r) => badge(r.role === "super" ? "super admin" : "staff") },
+    { label: "Access", cell: (r) => esc(permText(r)) },
+    { label: "Created", cell: (r) => esc(when(r.createdAt)) },
+    { label: "", cell: (r) => '<button type="button" class="ghost" data-staff-edit="' + esc(r.id) + '">Edit</button>'
+      + (ME && r.id === ME.id ? "" : ' <button type="button" class="ghost" data-staff-del="' + esc(r.id) + '">Delete</button>') }
+  ], staffRows);
+}
+
+function permRows(perms) {
+  const sections = (ME && ME.sections) || [];
+  document.getElementById("staff-perm-rows").innerHTML = sections.map((s) => {
+    const v = (perms || {})[s] || "none";
+    return '<div class="perm-row"><span>' + esc(sectionLabel(s)) + '</span><span class="seg" role="radiogroup" aria-label="' + esc(sectionLabel(s)) + '">'
+      + ["none", "read", "write"].map((lv) => '<label><input type="radio" name="perm-' + esc(s) + '" value="' + lv + '"' + (v === lv ? " checked" : "") + "><span>" + lv[0].toUpperCase() + lv.slice(1) + "</span></label>").join("")
+      + "</span></div>";
+  }).join("");
+}
+
+function readPerms() {
+  const out = {};
+  ((ME && ME.sections) || []).forEach((s) => {
+    const c = document.querySelector('input[name="perm-' + s + '"]:checked');
+    if (c && c.value !== "none") out[s] = c.value;
+  });
+  return out;
+}
+
+function showStaffForm(on, r) {
+  const form = document.getElementById("staff-form");
+  form.classList.toggle("hide", !on);
+  document.getElementById("staff-open").classList.toggle("hide", on);
+  if (!on) return;
+  staffEditId = r ? r.id : "";
+  document.getElementById("staff-form-title").textContent = r ? "Edit " + r.username : "Add admin";
+  const user = document.getElementById("staff-user");
+  user.value = r ? r.username : "";
+  user.readOnly = !!r;
+  document.getElementById("staff-pass").value = "";
+  document.getElementById("staff-pass-label").textContent = r ? "New password (leave blank to keep)" : "Password";
+  document.getElementById("staff-role").value = r ? r.role : "staff";
+  permRows(r ? r.perms : {});
+  document.getElementById("staff-perms").classList.toggle("hide", document.getElementById("staff-role").value === "super");
+  const msg = document.getElementById("staff-msg");
+  msg.className = "muted";
+  msg.textContent = "";
+  (r ? document.getElementById("staff-role") : user).focus();
 }
 
 function showDash(on) {
@@ -855,29 +952,53 @@ if (catsTable) catsTable.onclick = async (e) => {
     await load();
   } catch (err) { alert(err.message); }
 };
-const staffAdd = document.getElementById("staff-add");
-if (staffAdd) staffAdd.onclick = async () => {
+document.getElementById("staff-open").onclick = () => showStaffForm(true);
+document.getElementById("staff-cancel").onclick = () => showStaffForm(false);
+document.getElementById("staff-role").onchange = (e) => {
+  document.getElementById("staff-perms").classList.toggle("hide", e.target.value === "super");
+};
+document.getElementById("staff-perms").onclick = (e) => {
+  const b = e.target.closest("[data-perm-all]");
+  if (!b) return;
+  document.querySelectorAll('#staff-perm-rows input[value="' + b.dataset.permAll + '"]').forEach((i) => { i.checked = true; });
+};
+document.getElementById("staff-save").onclick = async () => {
   const msg = document.getElementById("staff-msg");
   msg.className = "muted";
+  const body = {
+    role: document.getElementById("staff-role").value,
+    perms: readPerms(),
+    password: document.getElementById("staff-pass").value
+  };
   try {
-    await api("/api/admin/staff", {
-      body: {
-        username: document.getElementById("staff-user").value,
-        password: document.getElementById("staff-pass").value
-      }
-    });
-    document.getElementById("staff-user").value = "";
-    document.getElementById("staff-pass").value = "";
-    msg.className = "ok";
-    msg.textContent = "Admin added.";
+    if (staffEditId) {
+      await api("/api/admin/staff/" + encodeURIComponent(staffEditId), { body });
+    } else {
+      await api("/api/admin/staff", { body: { ...body, username: document.getElementById("staff-user").value } });
+    }
+    showStaffForm(false);
     await load();
   } catch (e) {
     msg.className = "err";
     msg.textContent = e.message;
   }
 };
+document.getElementById("staff").onclick = async (e) => {
+  const ed = e.target.closest("[data-staff-edit]");
+  if (ed) return showStaffForm(true, staffRows.find((r) => r.id === ed.dataset.staffEdit));
+  const del = e.target.closest("[data-staff-del]");
+  if (!del) return;
+  const r = staffRows.find((x) => x.id === del.dataset.staffDel);
+  if (!r || !confirm("Delete admin " + r.username + "? They will be logged out.")) return;
+  try {
+    await api("/api/admin/staff/" + encodeURIComponent(r.id) + "/delete", { body: {} });
+    await load();
+  } catch (err) { alert(err.message); }
+};
 document.getElementById("out").onclick = () => {
   localStorage.removeItem(KEY);
+  ME = null;
+  document.getElementById("who").classList.add("hide");
   showDash(false);
 };
 ["username", "password"].forEach((id) => {
