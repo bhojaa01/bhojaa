@@ -54,4 +54,19 @@ function phoneError(phone) {
   return "";
 }
 
-module.exports = { json, readBody, tokenOf, phoneOf, phoneError, cors };
+// Optional contact number for users outside India: stored as +<country code><number>.
+// A plain 10-digit Indian mobile is accepted and stored as +91.
+function contactPhoneOf(v) {
+  const raw = String(v || "").trim();
+  if (!raw) return { phone: "" };
+  const d = raw.replace(/\D/g, "");
+  if (!raw.startsWith("+") && !raw.startsWith("00")) {
+    if (d.length === 10 && /^[6-9]/.test(d)) return { phone: "+91" + d };
+    return { error: "Add your country code, e.g. +44 7911 123456." };
+  }
+  const n = raw.startsWith("00") ? d.slice(2) : d;
+  if (n.length < 8 || n.length > 15 || n.startsWith("0")) return { error: "Enter a valid mobile number with country code, e.g. +44 7911 123456." };
+  return { phone: "+" + n };
+}
+
+module.exports = { json, readBody, tokenOf, phoneOf, phoneError, contactPhoneOf, cors };

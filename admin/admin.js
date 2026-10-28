@@ -445,7 +445,7 @@ async function load() {
   }).catch(() => {});
   table(document.getElementById("users"), [
     { label: "Id", cell: (r) => esc(r.id) },
-    { label: "Phone / email", cell: (r) => esc(r.phone || r.email) },
+    { label: "Phone / email", cell: (r) => esc(r.phone || r.contactPhone || r.email) },
     { label: "Name", cell: (r) => esc(r.profile && r.profile.name) },
     { label: "Role", cell: (r) => badge(r.role) },
     { label: "Address", cell: (r) => esc(r.address) },

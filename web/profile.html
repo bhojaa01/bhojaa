@@ -24,6 +24,7 @@
         </div>
         <p class="kv" id="v-phone-row"><span>Phone</span><b id="v-phone"></b></p>
         <p class="kv hide" id="v-email-row"><span>Email</span><b id="v-email"></b></p>
+        <p class="kv hide" id="v-contact-row"><span>Mobile</span><b id="v-contact"></b></p>
         <p class="kv"><span>Address</span><b id="v-address"></b></p>
         <p class="kv"><span>City / town</span><b id="v-city"></b></p>
         <p class="kv"><span>State</span><b id="v-state"></b></p>
@@ -40,6 +41,11 @@
         <div id="phone-wrap">
           <label>Phone</label>
           <input id="phone" type="tel" readonly>
+        </div>
+        <div id="contact-wrap" class="hide">
+          <label for="contact">Mobile number <span class="muted">(optional)</span></label>
+          <input id="contact" type="tel" autocomplete="tel" maxlength="20" placeholder="+44 7911 123456">
+          <p class="muted">Include your country code. Shared only with the person you’re matched with, after you accept.</p>
         </div>
         <label>Name</label>
         <input id="name" placeholder="Your name">

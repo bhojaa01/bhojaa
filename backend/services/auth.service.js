@@ -1,6 +1,6 @@
 const config = require("../config");
 const { User, Otp, Token, Admin } = require("../models");
-const { phoneOf, phoneError } = require("../utils/http");
+const { phoneOf, phoneError, contactPhoneOf } = require("../utils/http");
 const notify = require("./notify.service");
 
 function makeCode() {
@@ -99,6 +99,7 @@ async function profile(user) {
   return {
     phone: user.phone || "",
     email: user.email || "",
+    contactPhone: user.contactPhone || "",
     name: user.profile.name,
     address: user.address,
     city: user.city || "",
@@ -118,6 +119,11 @@ async function updateProfile(user, body) {
     const taken = User.findByPhone(phone);
     if (taken && taken._id !== user._id) throw Object.assign(new Error("Phone already in use"), { status: 400 });
     user.phone = phone;
+  }
+  if (body.contactPhone != null) {
+    const c = contactPhoneOf(body.contactPhone);
+    if (c.error) throw Object.assign(new Error(c.error), { status: 400 });
+    user.contactPhone = c.phone;
   }
   if (body.address != null) user.address = String(body.address).trim();
   if (body.city != null) user.city = String(body.city).trim();

@@ -65,8 +65,8 @@ function data() {
         id: r._id,
         orderId: r.orderId,
         listing: o ? (Listing.findById(o.listingId) || {}).name || "" : "",
-        from: from ? (from.phone || from.email) : r.fromUserId,
-        to: to ? (to.phone || to.email) : r.toUserId,
+        from: from ? (from.phone || from.contactPhone || from.email) : r.fromUserId,
+        to: to ? (to.phone || to.contactPhone || to.email) : r.toUserId,
         rating: r.rating,
         comment: r.comment,
         createdAt: r.createdAt

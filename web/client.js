@@ -1220,6 +1220,7 @@ async function pageProfile() {
   const phone = document.getElementById("phone");
   const name = document.getElementById("name");
   const address = document.getElementById("address");
+  const contact = document.getElementById("contact");
   const loc = document.getElementById("loc");
   const msg = document.getElementById("msg");
   let me = SP.user() || {};
@@ -1236,6 +1237,8 @@ async function pageProfile() {
   function fillForm(u) {
     phone.value = u.phone || "";
     document.getElementById("phone-wrap").classList.toggle("hide", !u.phone);
+    document.getElementById("contact-wrap").classList.toggle("hide", !!u.phone);
+    contact.value = u.contactPhone || "";
     name.value = u.name || "";
     address.value = u.address || "";
     loc.textContent = "Location: " + (placeLine(u) ? placeLine(u) + " · " : "") + locText(u);
@@ -1248,6 +1251,8 @@ async function pageProfile() {
     document.getElementById("v-email").textContent = u.email || "";
     document.getElementById("v-email-row").classList.toggle("hide", !u.email);
     document.getElementById("v-phone-row").classList.toggle("hide", !u.phone && !!u.email);
+    document.getElementById("v-contact").textContent = u.contactPhone || "Not added";
+    document.getElementById("v-contact-row").classList.toggle("hide", !!u.phone);
     document.getElementById("v-address").textContent = u.address || "—";
     document.getElementById("v-city").textContent = u.city || "—";
     document.getElementById("v-state").textContent = u.state || "—";
@@ -1304,6 +1309,7 @@ async function pageProfile() {
     msg.className = "ok";
     try {
       const sent = { name: name.value, address: address.value, ...(pin || {}) };
+      if (!me.phone) sent.contactPhone = contact.value;
       me = SP.mergePlace(await SP.api("/api/me", { body: sent }), sent);
       SP.setSession(SP.token(), me);
       showView(me);

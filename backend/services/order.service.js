@@ -5,7 +5,7 @@ const needService = require("./need.service");
 
 function person(u) {
   if (!u) return { name: "", phone: "" };
-  return { name: (u.profile && u.profile.name) || "Neighbor", phone: u.phone || u.email || "" };
+  return { name: (u.profile && u.profile.name) || "Neighbor", phone: u.phone || u.contactPhone || u.email || "" };
 }
 
 function view(o, who) {

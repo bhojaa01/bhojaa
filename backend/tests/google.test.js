@@ -78,3 +78,44 @@ test("Google login is off when no client id is configured", async () => {
   const out = await call("POST", "/api/login/google", { credential: "x" });
   assert.equal(out.status, 503);
 });
+
+test("contact numbers need a country code unless they are Indian mobiles", () => {
+  const { contactPhoneOf } = require("../utils/http");
+  assert.deepEqual(contactPhoneOf("+44 7911 123456"), { phone: "+447911123456" });
+  assert.deepEqual(contactPhoneOf("0044 7911 123456"), { phone: "+447911123456" });
+  assert.deepEqual(contactPhoneOf("98765 43210"), { phone: "+919876543210" });
+  assert.deepEqual(contactPhoneOf(""), { phone: "" });
+  assert.match(contactPhoneOf("020 7946 0958").error, /country code/);
+  assert.match(contactPhoneOf("+12").error, /valid mobile/);
+});
+
+test("Google users can add an optional mobile that does not become a login", async () => {
+  config.googleClientId = "test-client.apps.googleusercontent.com";
+  const restore = fakeGoogle({ ...base(), sub: "g-200", email: "lee@example.com" });
+  let token;
+  try {
+    token = (await call("POST", "/api/login/google", { credential: "x" })).data.token;
+  } finally { restore(); }
+  const authed = (body) => new Promise((resolve, reject) => {
+    const raw = JSON.stringify(body);
+    const req = {
+      method: "POST", url: "/api/me",
+      headers: { "content-type": "application/json", authorization: "Bearer " + token },
+      on(ev, fn) {
+        if (ev === "data") queueMicrotask(() => fn(raw));
+        if (ev === "end") queueMicrotask(fn);
+        return req;
+      }
+    };
+    const res = { statusCode: 200, setHeader() {}, writeHead(c) { this.statusCode = c; }, end(s) { resolve({ status: this.statusCode, data: JSON.parse(s) }); } };
+    Promise.resolve(app(req, res)).catch(reject);
+  });
+  const bad = await authed({ contactPhone: "020 7946 0958" });
+  assert.equal(bad.status, 400);
+  const ok = await authed({ contactPhone: "+44 7911 123456" });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.contactPhone, "+447911123456");
+  assert.equal(ok.data.phone, "");
+  const { User } = require("../models");
+  assert.equal(User.findByPhone("447911123456"), null);
+});

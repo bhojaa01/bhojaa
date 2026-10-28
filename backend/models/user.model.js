@@ -91,6 +91,7 @@ function dump(u) {
     id: u._id,
     phone: u.phone,
     email: u.email || "",
+    contactPhone: u.contactPhone || "",
     profile: u.profile,
     role: u.role,
     roles: u.roles || [],
