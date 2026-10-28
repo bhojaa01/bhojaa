@@ -1,6 +1,11 @@
+// Live site → production API (real OTPs). Vercel previews → QA API (OTP is always 1234).
+const LIVE_HOSTS = ["bhojaa.in", "www.bhojaa.in", "bhojaa.vercel.app"];
+const QA_API = "";
 const API = location.hostname === "localhost" || location.hostname === "127.0.0.1"
   ? "http://localhost:4000"
-  : "https://bhojaa-production.up.railway.app";
+  : !LIVE_HOSTS.includes(location.hostname) && QA_API
+    ? QA_API
+    : "https://bhojaa-production.up.railway.app";
 
 const SP = {
   apiUrl: API,
