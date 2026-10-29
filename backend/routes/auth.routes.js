@@ -10,5 +10,6 @@ router.get("/api/auth/config", auth.authConfig);
 router.get("/api/me", requireAuth, auth.me);
 router.post("/api/me", requireAuth, auth.updateMe);
 router.post("/api/logout", requireAuth, auth.logout);
+router.post("/api/me/delete", requireAuth, auth.deleteMe);
 
 module.exports = router;

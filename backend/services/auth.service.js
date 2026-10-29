@@ -162,6 +162,12 @@ function logout(user, token) {
   return { ok: true };
 }
 
+function deleteAccount(user, body) {
+  if (!body || body.confirm !== true) throw Object.assign(new Error("Confirm to delete your account"), { status: 400 });
+  User.remove(user);
+  return { ok: true };
+}
+
 function adminReady() {
   return { setup: Admin.size() === 0 };
 }
@@ -217,4 +223,4 @@ function adminList() {
   return Admin.all().map(Admin.dump);
 }
 
-module.exports = { sendOtp, login, googleLogin, authConfig, profile, updateProfile, logout, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, profile, updateProfile, logout, deleteAccount, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };

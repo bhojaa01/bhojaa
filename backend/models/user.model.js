@@ -146,6 +146,23 @@ function hasToken(user, t) {
   return Token.same(user.token, t);
 }
 
+// Deletes the account and everything tied to it: listings, requests, orders,
+// reviews, reports, support chats and OTPs. Used for user-initiated account deletion.
+function remove(user) {
+  const id = String(user._id);
+  const drop = (c, test) => c.find(test).forEach((d) => c.deleteById(d._id));
+  const orders = db.orders.find((o) => String(o.seekerId) === id || String(o.providerId) === id);
+  const orderIds = new Set(orders.map((o) => String(o._id)));
+  drop(db.reviews, (r) => String(r.fromUserId) === id || String(r.toUserId) === id || orderIds.has(String(r.orderId)));
+  orders.forEach((o) => db.orders.deleteById(o._id));
+  drop(db.listings, (l) => String(l.providerId) === id);
+  drop(db.need_requests, (n) => String(n.seekerId) === id);
+  drop(db.reports, (r) => String(r.reporterId) === id);
+  drop(db.support_tickets, (t) => String(t.userId) === id);
+  if (user.phone) drop(db.otps, (o) => o.phone === user.phone);
+  db.users.deleteById(id);
+}
+
 function all() {
   return db.users.find();
 }
@@ -159,4 +176,4 @@ function save(user) {
   return db.users.save(user);
 }
 
-module.exports = { create, findById, findByPhone, findByGoogle, findByEmail, ensure, setLocation, coords, dump, all, size, save, setToken, setRoleToken, clearToken, clearRoleToken, hasToken, tokensOf };
+module.exports = { create, remove, findById, findByPhone, findByGoogle, findByEmail, ensure, setLocation, coords, dump, all, size, save, setToken, setRoleToken, clearToken, clearRoleToken, hasToken, tokensOf };

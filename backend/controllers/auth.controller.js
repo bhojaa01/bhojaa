@@ -33,6 +33,11 @@ function logout(req, res) {
   json(res, 200, authService.logout(req.user, tokenOf(req)));
 }
 
+function deleteMe(req, res) {
+  try { json(res, 200, authService.deleteAccount(req.user, req.body)); }
+  catch (e) { json(res, e.status || 500, { error: e.message }); }
+}
+
 function adminLogin(req, res) {
   try { json(res, 200, authService.adminLogin(req.body.username, req.body.password)); }
   catch (e) { json(res, e.status || 500, { error: e.message }); }
@@ -70,4 +75,4 @@ function adminList(req, res) {
   json(res, 200, { admins: authService.adminList() });
 }
 
-module.exports = { sendOtp, login, googleLogin, authConfig, me, updateMe, logout, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };
+module.exports = { sendOtp, login, googleLogin, authConfig, me, updateMe, logout, deleteMe, adminLogin, adminReady, adminSetup, adminCreate, adminUpdate, adminRemove, adminMe, adminList };

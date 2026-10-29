@@ -1321,6 +1321,14 @@ async function pageProfile() {
     } catch (e) { msg.className = "err"; msg.textContent = e.message; }
   };
   document.getElementById("out").onclick = () => SP.logout();
+  document.getElementById("delete-account").onclick = async () => {
+    if (!confirm("Delete your Bhojaa account? Your profile, listings, requests, chats and history will be permanently removed. This can't be undone.")) return;
+    try {
+      await SP.api("/api/me/delete", { body: { confirm: true } });
+      SP.clearSession();
+      location.href = "delete-account.html?done=1";
+    } catch (e) { alert(e.message); }
+  };
 }
 
 async function pageHelp() {
