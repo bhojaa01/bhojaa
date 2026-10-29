@@ -1587,3 +1587,5 @@ const pages = {
 };
 const page = document.body.dataset.page;
 if (page && pages[page]) pages[page]();
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
