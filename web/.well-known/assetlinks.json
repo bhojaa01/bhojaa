@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.bhojaa.app",
+      "sha256_cert_fingerprints": [
+        "F1:44:C2:DC:F3:62:46:F2:80:25:0B:FC:C3:1F:10:4F:98:42:4D:4C:69:FF:CB:37:92:05:25:58:80:19:28:F2"
+      ]
+    }
+  }
+]
