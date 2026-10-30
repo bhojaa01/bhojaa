@@ -4,8 +4,8 @@ const defaults = {
   headline: "Extra food should feed someone nearby.",
   tagline: "Share leftover tiffin, fruit or a meal. Pickup only. Free.",
   banner: "hero.jpg",
-  city: "Now in Bengaluru",
-  proof: "Active in Bengaluru. Pickup only.",
+  city: "Now across India",
+  proof: "Active across India. Pickup only.",
   howTitle: "How it works",
   steps: [
     { title: "Post extra food", text: "List the meal, servings, and until when." },
@@ -30,6 +30,13 @@ const defaults = {
     { q: "Can I give packed food?", a: "Yes. Leftover homemade food, packed meals, fruit, and similar extras are welcome. Say what’s inside and any allergens in the note." },
     { q: "What if nobody’s nearby?", a: "Listings are shown only within a short pickup radius. If no one is close, wait a little or try again later. Pickup is always free and local." }
   ],
+  footer: "Bhojaa · Share extra food with neighbors, anywhere in India."
+};
+
+// Old Bengaluru-only defaults saved in the home row before Bhojaa went India-wide.
+const legacy = {
+  city: "Now in Bengaluru",
+  proof: "Active in Bengaluru. Pickup only.",
   footer: "Bhojaa · Share extra food with neighbors in Bengaluru."
 };
 
@@ -48,7 +55,8 @@ function trio(list, fallback, keys) {
 }
 
 function view(row) {
-  const d = row || {};
+  const d = { ...(row || {}) };
+  Object.keys(legacy).forEach((k) => { if (String(d[k] || "").trim() === legacy[k]) d[k] = ""; });
   return {
     headline: str(d.headline, defaults.headline),
     tagline: str(d.tagline, defaults.tagline),
@@ -70,7 +78,7 @@ function view(row) {
 function get() {
   const Order = require("../models/order.model");
   const meals = Order.all().filter((o) => o.status === "collected").length;
-  return { ...view(db.settings.findById("home")), stats: { meals, city: "Bengaluru" } };
+  return { ...view(db.settings.findById("home")), stats: { meals, city: "India" } };
 }
 
 function ensure() {
