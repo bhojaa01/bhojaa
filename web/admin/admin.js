@@ -627,7 +627,7 @@ function canWrite(s) {
 async function loadMe() {
   ME = await api("/api/admin/me");
   const who = document.getElementById("who");
-  who.textContent = ME.username + " · " + (ME.role === "super" ? "Super admin" : "Staff");
+  who.textContent = (ME.name ? ME.name + " (" + ME.username + ")" : ME.username) + " · " + (ME.role === "super" ? "Super admin" : "Staff");
   who.classList.remove("hide");
   document.querySelectorAll(".menu-item[data-section]").forEach((b) => b.classList.toggle("hide", !canSee(b.dataset.section)));
   document.querySelectorAll(".panel[data-panel]").forEach((p) => {
@@ -656,7 +656,8 @@ function paintStaff() {
   const el = document.getElementById("staff");
   if (!el) return;
   table(el, [
-    { label: "Username", cell: (r) => esc(r.username) + (ME && r.id === ME.id ? ' <span class="badge">you</span>' : "") },
+    { label: "Name", cell: (r) => esc(r.name || "—") + (ME && r.id === ME.id ? ' <span class="badge">you</span>' : "") },
+    { label: "Username", cell: (r) => esc(r.username) },
     { label: "Type", cell: (r) => badge(r.role === "super" ? "super admin" : "staff") },
     { label: "Access", cell: (r) => esc(permText(r)) },
     { label: "Created", cell: (r) => esc(when(r.createdAt)) },
@@ -690,10 +691,11 @@ function showStaffForm(on, r) {
   document.getElementById("staff-open").classList.toggle("hide", on);
   if (!on) return;
   staffEditId = r ? r.id : "";
-  document.getElementById("staff-form-title").textContent = r ? "Edit " + r.username : "Add admin";
+  document.getElementById("staff-form-title").textContent = r ? "Edit " + (r.name || r.username) : "Add admin";
   const user = document.getElementById("staff-user");
   user.value = r ? r.username : "";
   user.readOnly = !!r;
+  document.getElementById("staff-name").value = r ? r.name || "" : "";
   document.getElementById("staff-pass").value = "";
   document.getElementById("staff-pass-label").textContent = r ? "New password (leave blank to keep)" : "Password";
   document.getElementById("staff-role").value = r ? r.role : "staff";
@@ -702,7 +704,7 @@ function showStaffForm(on, r) {
   const msg = document.getElementById("staff-msg");
   msg.className = "muted";
   msg.textContent = "";
-  (r ? document.getElementById("staff-role") : user).focus();
+  (r ? document.getElementById("staff-name") : user).focus();
 }
 
 function showDash(on) {
@@ -966,6 +968,7 @@ document.getElementById("staff-save").onclick = async () => {
   const msg = document.getElementById("staff-msg");
   msg.className = "muted";
   const body = {
+    name: document.getElementById("staff-name").value,
     role: document.getElementById("staff-role").value,
     perms: readPerms(),
     password: document.getElementById("staff-pass").value
@@ -989,7 +992,7 @@ document.getElementById("staff").onclick = async (e) => {
   const del = e.target.closest("[data-staff-del]");
   if (!del) return;
   const r = staffRows.find((x) => x.id === del.dataset.staffDel);
-  if (!r || !confirm("Delete admin " + r.username + "? They will be logged out.")) return;
+  if (!r || !confirm("Delete admin " + (r.name || r.username) + "? They will be logged out.")) return;
   try {
     await api("/api/admin/staff/" + encodeURIComponent(r.id) + "/delete", { body: {} });
     await load();

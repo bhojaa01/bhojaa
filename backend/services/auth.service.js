@@ -189,7 +189,7 @@ function adminLogin(username, password) {
 }
 
 function adminCreate(body) {
-  const row = Admin.create({ username: body.username, password: body.password, role: body.role === "super" ? "super" : "staff", perms: body.perms });
+  const row = Admin.create({ username: body.username, name: body.name, password: body.password, role: body.role === "super" ? "super" : "staff", perms: body.perms });
   return Admin.dump(row);
 }
 

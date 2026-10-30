@@ -46,6 +46,11 @@ function can(row, section, level) {
   return have >= (LEVELS[level || "read"] || 1);
 }
 
+// Display name shown in the admin UI; optional, login still uses username.
+function cleanName(name) {
+  return String(name || "").trim().replace(/\s+/g, " ").slice(0, 60);
+}
+
 function supers() {
   return all().filter((a) => roleOf(a) === "super");
 }
@@ -59,6 +64,7 @@ function create(data) {
   const role = data.role === "staff" ? "staff" : "super";
   return db.admins.insertOne({
     username,
+    name: cleanName(data.name),
     password: hash(password),
     role,
     perms: role === "staff" ? cleanPerms(data.perms) : {},
@@ -68,6 +74,7 @@ function create(data) {
 
 function update(row, data) {
   const patch = {};
+  if (data.name != null) patch.name = cleanName(data.name);
   if (data.role === "staff" || data.role === "super") patch.role = data.role;
   const role = patch.role || roleOf(row);
   if (data.perms != null || patch.role) patch.perms = role === "staff" ? cleanPerms(data.perms != null ? data.perms : row.perms) : {};
@@ -114,7 +121,7 @@ function clearToken(row) {
 
 function dump(a) {
   const role = roleOf(a);
-  return { id: a._id, username: a.username, role, perms: role === "staff" ? cleanPerms(a.perms) : {}, createdAt: a.createdAt };
+  return { id: a._id, username: a.username, name: a.name || "", role, perms: role === "staff" ? cleanPerms(a.perms) : {}, createdAt: a.createdAt };
 }
 
 function all() {
