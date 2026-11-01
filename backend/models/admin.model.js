@@ -51,13 +51,18 @@ function cleanName(name) {
   return String(name || "").trim().replace(/\s+/g, " ").slice(0, 60);
 }
 
+// Usernames ignore case and all spaces, so "98439 53135" and "9843953135" are the same login.
+function cleanUser(username) {
+  return String(username || "").replace(/\s+/g, "").toLowerCase();
+}
+
 function supers() {
   return all().filter((a) => roleOf(a) === "super");
 }
 
 function create(data) {
-  const username = String(data.username || "").trim().toLowerCase();
-  const password = String(data.password || "");
+  const username = cleanUser(data.username);
+  const password = String(data.password || "").trim();
   if (username.length < 3) throw Object.assign(new Error("Username too short"), { status: 400 });
   if (password.length < 6) throw Object.assign(new Error("Password must be at least 6 characters"), { status: 400 });
   if (findByUsername(username)) throw Object.assign(new Error("Username already in use"), { status: 400 });
@@ -78,9 +83,10 @@ function update(row, data) {
   if (data.role === "staff" || data.role === "super") patch.role = data.role;
   const role = patch.role || roleOf(row);
   if (data.perms != null || patch.role) patch.perms = role === "staff" ? cleanPerms(data.perms != null ? data.perms : row.perms) : {};
-  if (data.password != null && data.password !== "") {
-    if (String(data.password).length < 6) throw Object.assign(new Error("Password must be at least 6 characters"), { status: 400 });
-    patch.password = hash(data.password);
+  const pass = data.password != null ? String(data.password).trim() : "";
+  if (pass) {
+    if (pass.length < 6) throw Object.assign(new Error("Password must be at least 6 characters"), { status: 400 });
+    patch.password = hash(pass);
     patch.token = "";
   }
   patch.updatedAt = new Date();
@@ -94,12 +100,16 @@ function remove(row) {
 }
 
 function findByUsername(username) {
-  return db.admins.findOne({ username: String(username || "").trim().toLowerCase() }) || null;
+  const want = cleanUser(username);
+  if (!want) return null;
+  return db.admins.findOne((a) => cleanUser(a.username) === want) || null;
 }
 
 function verify(username, password) {
   const row = findByUsername(username);
-  if (!row || !check(password, row.password)) return null;
+  // Older passwords may have been saved with stray spaces, so try the raw value too.
+  const raw = String(password || "");
+  if (!row || !(check(raw.trim(), row.password) || check(raw, row.password))) return null;
   return row;
 }
 
