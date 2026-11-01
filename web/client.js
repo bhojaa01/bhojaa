@@ -473,6 +473,10 @@ async function setupGoogle() {
   await loadScript("https://accounts.google.com/gsi/client");
   google.accounts.id.initialize({
     client_id: cfg.googleClientId,
+    // FedCM lets Chrome on Android offer the phone's Google accounts in a one-tap sheet,
+    // which matters inside the Play Store app (a Trusted Web Activity).
+    use_fedcm_for_prompt: true,
+    use_fedcm_for_button: true,
     callback: async (r) => {
       gmsg.className = "muted";
       gmsg.textContent = "Signing you in…";
@@ -491,6 +495,7 @@ async function setupGoogle() {
     theme: "outline", size: "large", shape: "pill", text: "continue_with",
     width: Math.min(360, slot.clientWidth || 320)
   });
+  google.accounts.id.prompt();
 }
 
 async function pageRole() {
