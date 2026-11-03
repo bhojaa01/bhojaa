@@ -20,17 +20,30 @@
       </nav>
     </div>
     <div id="give-list">
-    <h1 class="page-title">Give extra food</h1>
-    <input id="q" placeholder="Search extra food...">
-    <p class="section-label">Posted extra food</p>
+    <section class="give-hero">
+      <div class="give-hero-text">
+        <span class="give-kicker">Share what's left over</span>
+        <h1 class="page-title">Give extra food</h1>
+        <p>Post a listing in a minute. Neighbors nearby can request a free pickup.</p>
+        <button class="btn" type="button" id="open-give">+ Give food</button>
+      </div>
+      <div class="give-stats">
+        <div><b id="stat-live">0</b><span>Live listings</span></div>
+        <div><b id="stat-wait">0</b><span>Pickup requests</span></div>
+      </div>
+    </section>
+    <label class="give-search" for="q">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search your posted food">
+    </label>
+    <div class="give-head"><h2>Posted extra food</h2><span class="count" id="posted-count">0</span></div>
     <div class="food-list" id="posted"></div>
-    <p class="row" style="margin:16px 0">
-      <button class="btn" type="button" id="open-give">Give other food</button>
-    </p>
+    <div class="give-head hide" id="needs-head"><h2>Neighbors who need food</h2><span class="count" id="needs-count">0</span></div>
     <div id="needs" class="stack"></div>
     </div>
     <div id="give-box" class="hide">
-    <h2 style="margin:8px 0 10px">Give other food</h2>
+    <h2 class="give-form-title">Give food</h2>
+    <p class="muted give-form-sub">Tell neighbors what you have and when they can pick it up.</p>
     <div class="card form-card" id="give-form"><div class="pad">
       <label>Diet</label>
       <select id="diet"><option>Veg</option><option>Non-veg</option><option>All</option></select>

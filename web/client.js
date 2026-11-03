@@ -844,6 +844,9 @@ async function pageGive() {
       const mine = await SP.api("/api/mine");
       const list = (mine.listings || []).filter((l) => l.status !== "done" && l.status !== "expired" && l.status !== "inactive" && !(l.given > 0));
       const qBox = document.getElementById("q");
+      const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setText("stat-live", list.length);
+      setText("stat-wait", list.reduce((n, l) => n + (l.waiting || 0), 0));
       let shown = PAGE;
       function filtered() {
         const q = ((qBox && qBox.value) || "").trim().toLowerCase();
@@ -851,8 +854,18 @@ async function pageGive() {
       }
       function paintPosted() {
         const rows = filtered();
+        setText("posted-count", rows.length);
         if (!rows.length) {
-          posted.innerHTML = '<div class="card"><div class="pad"><p class="muted">No extra food posted yet.</p></div></div>';
+          posted.innerHTML = list.length
+            ? '<div class="give-empty"><b>No matches</b><p class="muted">Try a different food name.</p></div>'
+            : `<div class="give-empty">
+                <span class="give-empty-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16c0 5-3.5 9-8 9s-8-4-8-9z"/><path d="M8 10V8a4 4 0 018 0v2"/></svg></span>
+                <b>No extra food posted yet</b>
+                <p class="muted">Cooked too much or have packed food to spare? Post it and a neighbor can pick it up.</p>
+                <button class="ghost" type="button" data-open-give>Post your first listing</button>
+              </div>`;
+          const first = posted.querySelector("[data-open-give]");
+          if (first) first.onclick = () => openGiveForm();
           return;
         }
         const s = takeMore(rows, shown);
@@ -871,6 +884,10 @@ async function pageGive() {
     const q = pos ? "?lat=" + pos.lat + "&lng=" + pos.lng + "&km=10" : "?km=10";
     const data = await SP.api("/api/needs" + q);
     const open = (data.needs || []).filter((n) => !n.mine && n.status === "open");
+    const needsHead = document.getElementById("needs-head");
+    if (needsHead) needsHead.classList.toggle("hide", !open.length);
+    const needsCount = document.getElementById("needs-count");
+    if (needsCount) needsCount.textContent = open.length;
     if (!open.length) {
       needsBox.innerHTML = "";
     } else {
